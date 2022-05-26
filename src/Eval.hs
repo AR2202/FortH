@@ -16,7 +16,7 @@ initialNames = Map.fromList $ Prelude.zip ["+", "-", "*", "/"] [0 ..]
 initialDefs :: Defs
 initialDefs =
   IM.fromList $
-  Prelude.zip [0 ..] [[Arith Add], [Arith Sub], [Arith Times], [Arith Div]]
+  Prelude.zip [0 ..] [Arith Add, Arith Sub, Arith Times, Arith Div]
 
 initialEnv :: Env
 initialEnv = Env initialNames initialDefs []
@@ -67,5 +67,12 @@ eval env (Word name) =
     Nothing -> Left UnknownWord
     Just i ->
       case IM.lookup i (definitions env) of
-        Nothing        -> Left UnknownWord
-        Just forthvals -> Prelude.foldl eval env forthvals
+        Nothing       -> Left UnknownWord
+        Just forthval -> eval env forthval
+eval env (Address intlist) = L.foldl' eval' (Right env) intlist
+  where
+    eval' (Left e) _ = Left e
+    eval' (Right env') i =
+      case IM.lookup i (definitions env) of
+        Nothing       -> Left UnknownWord
+        Just forthval -> eval env forthval

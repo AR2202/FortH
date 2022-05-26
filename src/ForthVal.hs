@@ -16,11 +16,10 @@ import           Data.Text   as T
 
 data ForthVal
   = Number Int
-  | String T.Text
   | Word T.Text
   | Manip StackManip
   | Arith Operator
-  | Address Int
+  | Address [Int]
   | Def Fun
   deriving (Show, Eq)
 
@@ -48,7 +47,7 @@ data StackManip
 
 type Names = Map.Map T.Text Int
 
-type Defs = IntMap [ForthVal]
+type Defs = IntMap ForthVal
 
 data Env =
   Env
