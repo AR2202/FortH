@@ -25,6 +25,10 @@ dependencies:
 - text
 - containers
 - parsec
+- QuickCheck
+- hspec
+- generic-random
+- generic-arbitrary
 
 library:
   source-dirs: src

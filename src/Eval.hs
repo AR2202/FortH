@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Eval
-  (
+  ( initialDefs
+  , initialEnv
+  , initialNames
+  , printF
+  , eval
   ) where
 
 import           Data.IntMap as IM
@@ -76,3 +80,19 @@ eval env (Address intlist) = L.foldl' eval' (Right env) intlist
       case IM.lookup i (definitions env) of
         Nothing       -> Left UnknownWord
         Just forthval -> eval env forthval
+--eval env Def -- to be added
+eval env (Def fun) =
+  case lookupAll (body fun) env of
+    Nothing -> Left UnknownWord
+    Just addresslist ->
+      Right $
+      env
+        { names = Map.insert newword newaddress (names env)
+        , definitions =
+            IM.insert newaddress (Address addresslist) (definitions env)
+        }
+      where newword = name fun
+            newaddress = Map.size (names env)
+
+lookupAll text env =
+  sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module ForthVal
@@ -8,11 +9,16 @@ module ForthVal
   , StackManip(..)
   , Names(..)
   , Defs(..)
+  , Fun(..)
   ) where
 
-import           Data.IntMap as IM
-import qualified Data.Map    as Map
-import           Data.Text   as T
+import           Data.IntMap                       as IM
+import qualified Data.Map                          as Map
+import           Data.Text                         as T
+import           Generic.Random                    (genericArbitrary', uniform)
+import           GHC.Generics
+import           Test.QuickCheck                   (Arbitrary (..))
+import           Test.QuickCheck.Arbitrary.Generic
 
 data ForthVal
   = Number Int
@@ -35,7 +41,11 @@ data Operator
   | Sub
   | Times
   | Div
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance Arbitrary Operator where
+  arbitrary = genericArbitrary
+  shrink = genericShrink
 
 data StackManip
   = Dup

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d59277d9ffe0767fd718888ffec22c90f3a24f4def7d19d0f542674bafd466cb
+-- hash: fb0a666650b41617852003fb8af4fae6b232ecb04103a3694aefda4268790363
 
 name:           FortH
 version:        0.1.0.0
@@ -35,8 +35,12 @@ library
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , containers
+    , generic-arbitrary
+    , generic-random
+    , hspec
     , mtl
     , parsec
     , text
@@ -51,8 +55,12 @@ executable FortH-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       FortH
+    , QuickCheck
     , base >=4.7 && <5
     , containers
+    , generic-arbitrary
+    , generic-random
+    , hspec
     , mtl
     , parsec
     , text
@@ -68,8 +76,12 @@ test-suite FortH-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       FortH
+    , QuickCheck
     , base >=4.7 && <5
     , containers
+    , generic-arbitrary
+    , generic-random
+    , hspec
     , mtl
     , parsec
     , text
