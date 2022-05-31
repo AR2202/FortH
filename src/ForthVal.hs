@@ -10,6 +10,7 @@ module ForthVal
   , Names(..)
   , Defs(..)
   , Fun(..)
+  , Token(..)
   ) where
 
 import           Data.IntMap                       as IM
@@ -72,3 +73,10 @@ data ForthErr
   | UnknownWord
   | InvalidWord
   deriving (Show, Read, Eq)
+
+data Token
+  = Ide T.Text
+  | Num T.Text
+  | Colon
+  | Semicolon
+  deriving (Show, Eq)

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fb0a666650b41617852003fb8af4fae6b232ecb04103a3694aefda4268790363
+-- hash: d265fb1ef79805301b1f501503a7e45dd4d1b7aa9fa61c5e3ce42b0a81689595
 
 name:           FortH
 version:        0.1.0.0
@@ -30,6 +30,8 @@ library
       Eval
       ForthVal
       Lib
+      Parser
+      Tutorial
   other-modules:
       Paths_FortH
   hs-source-dirs:
@@ -43,6 +45,7 @@ library
     , hspec
     , mtl
     , parsec
+    , parsec-numbers
     , text
   default-language: Haskell2010
 
@@ -63,6 +66,7 @@ executable FortH-exe
     , hspec
     , mtl
     , parsec
+    , parsec-numbers
     , text
   default-language: Haskell2010
 
@@ -84,5 +88,6 @@ test-suite FortH-test
     , hspec
     , mtl
     , parsec
+    , parsec-numbers
     , text
   default-language: Haskell2010

@@ -29,6 +29,7 @@ dependencies:
 - hspec
 - generic-random
 - generic-arbitrary
+- parsec-numbers
 
 library:
   source-dirs: src
