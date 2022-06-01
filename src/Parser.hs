@@ -2,7 +2,12 @@
 
 -- For the moment, lexing and parsing are combined in this module
 module Parser
-  (
+  ( ideToken
+  , numToken
+  , colonToken
+  , semicolonToken
+  , tokenParser
+  , tokensParser
   ) where
 
 import           Data.IntMap                        as IM
@@ -20,13 +25,26 @@ import qualified Text.Parsec.Token                  as Tok
 import           Text.ParserCombinators.Parsec.Char
 
 ideToken :: Parser Token
-ideToken = Ide . T.pack <$> (many1 space >> many1 letter >> many1 space)
+ideToken =
+  Ide . T.pack <$>
+  ((++) <$> many digit <*> ((++) <$> many1 letter <*> many alphaNum))
 
 numToken :: Parser Token
-numToken = Num . T.pack <$> (many1 space >> many1 digit >> many1 space)
+numToken = Num . T.pack <$> (spaces *> many1 digit <* spaces)
 
 colonToken :: Parser Token
-colonToken = const Colon <$> (many1 space >> char ':' >> many1 space)
+colonToken = const Colon <$> (spaces >> char ':' >> spaces)
 
 semicolonToken :: Parser Token
-semicolonToken = const Semicolon <$> (many1 space >> char ';' >> many1 space)
+semicolonToken = const Semicolon <$> (spaces >> char ';' >> spaces)
+
+operatorToken :: Parser Token
+operatorToken = Operator <$> (spaces *> oneOf "+-*/" <* spaces)
+
+tokensParser :: Parser [Token]
+tokensParser = spaces >> many (tokenParser <* spaces) <* eof
+
+tokenParser :: Parser Token
+tokenParser =
+  try colonToken <|> try semicolonToken <|> try operatorToken <|> try ideToken <|>
+  try numToken

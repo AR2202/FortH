@@ -77,6 +77,7 @@ data ForthErr
 data Token
   = Ide T.Text
   | Num T.Text
+  | Operator Char
   | Colon
   | Semicolon
   deriving (Show, Eq)
