@@ -17,9 +17,9 @@ repl' env = do
   let newenv = evalInputRepl (T.pack input) env
   if input == ":q"
     then putStrLn "Goodbye"
-    else mapM_ printF newenv >>
-         case newenv of
+    else case newenv of
            Left e    -> print e >> repl' env
-           Right new -> repl' new
+           Right new -> printF new >> repl' new
 
+repl :: IO ()
 repl = repl' initialEnv
