@@ -26,14 +26,15 @@ data ForthVal
   | Word T.Text
   | Manip StackManip
   | Arith Operator
-  | Address [Int]
+  | Address Int
+  | Forthvals [ForthVal]
   | Def Fun
   deriving (Show, Eq)
 
 data Fun =
   Fun
     { name :: T.Text
-    , body :: T.Text
+    , body :: [ForthVal]
     }
   deriving (Show, Eq)
 
@@ -72,6 +73,8 @@ data ForthErr
   = StackUnderflow
   | UnknownWord
   | InvalidWord
+  | SyntaxError
+  | ParseError
   deriving (Show, Read, Eq)
 
 data Token

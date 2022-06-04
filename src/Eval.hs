@@ -73,26 +73,28 @@ eval env (Word name) =
       case IM.lookup i (definitions env) of
         Nothing       -> Left UnknownWord
         Just forthval -> eval env forthval
-eval env (Address intlist) = L.foldl' eval' (Right env) intlist
-  where
-    eval' (Left e) _ = Left e
-    eval' (Right env') i =
-      case IM.lookup i (definitions env) of
-        Nothing       -> Left UnknownWord
-        Just forthval -> eval env forthval
---eval env Def -- to be added
+eval env (Address i) =
+  case IM.lookup i (definitions env) of
+    Nothing       -> Left UnknownWord
+    Just forthval -> eval env forthval
 eval env (Def fun) =
-  case lookupAll (body fun) env of
+  case evalDefBody env (body fun) of
     Nothing -> Left UnknownWord
-    Just addresslist ->
+    Just forthvals ->
       Right $
       env
         { names = Map.insert newword newaddress (names env)
         , definitions =
-            IM.insert newaddress (Address addresslist) (definitions env)
+            IM.insert newaddress (Forthvals forthvals) (definitions env)
         }
       where newword = name fun
             newaddress = Map.size (names env)
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
+
+evalDefComponents env (Number i)  = Just (Number i)
+evalDefComponents env (Word text) = fmap Address $ Map.lookup text (names env)
+
+evalDefBody env forthvals =
+  sequenceA $ Prelude.map (evalDefComponents env) forthvals

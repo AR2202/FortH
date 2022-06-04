@@ -24,19 +24,23 @@ main =
     it "should start with an empty stack" $ property prop_initial_stack_empty
     describe "initialDef" $ do
       it "should contain +" $ initialDefs_addition_operator `shouldBe` True
+      describe "ideToken" $
+        it "should return an identifier Token" $
+        parse ideToken "file" "aword" `shouldBe` Right (Ide "aword")
+      describe "eval" $
+        it "pushes result on top of the stack" $
+        stackState (eval envWithStackNumbers (Arith Add)) `shouldBe`
+        Right [3, 4]
       describe "eval" $
         context "when evaluating a definition" $
         it "should insert the new word" $
         eval initialEnv (Def (ForthVal.Fun "new" "+ *")) `shouldSatisfy`
         env_contains_word "new"
-        --describe "ideToken" $
-       -- it "should return an identifier Token" $
-        --parse ideToken "file" " aword " `shouldBe` Right (Ide "aword")
-        --describe "eval" $do
-        --context "when evaluating addition" $
-        --it "pushes result on top of the stack" $
-        --stackState (eval envWithStackNumbers (Arith Add)) `shouldBe`
-        --Right [3, 4]
+      describe "eval" $
+        context "when evaluating multiplication" $
+        it "pushes result on top of the stack" $
+        stackState (eval envWithStackNumbers (Arith Times)) `shouldBe`
+        Right [2, 4]
 
 initialDefs_addition_operator :: Bool
 initialDefs_addition_operator =
