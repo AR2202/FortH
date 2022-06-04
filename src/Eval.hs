@@ -15,12 +15,25 @@ import           Data.Text   as T
 import           ForthVal
 
 initialNames :: Names
-initialNames = Map.fromList $ Prelude.zip ["+", "-", "*", "/"] [0 ..]
+initialNames =
+  Map.fromList $
+  Prelude.zip ["+", "-", "*", "/", "DUP", "DROP", "SWAP", "OVER", "ROT"] [0 ..]
 
 initialDefs :: Defs
 initialDefs =
   IM.fromList $
-  Prelude.zip [0 ..] [Arith Add, Arith Sub, Arith Times, Arith Div]
+  Prelude.zip
+    [0 ..]
+    [ Arith Add
+    , Arith Sub
+    , Arith Times
+    , Arith Div
+    , Manip Dup
+    , Manip Drop
+    , Manip Swap
+    , Manip Over
+    , Manip Rot
+    ]
 
 initialEnv :: Env
 initialEnv = Env initialNames initialDefs []
