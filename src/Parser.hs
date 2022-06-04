@@ -8,6 +8,7 @@ module Parser
   , semicolonToken
   , tokenParser
   , tokensParser
+  , parseFromText
   ) where
 
 import           Data.IntMap                        as IM
@@ -72,8 +73,18 @@ forthValParser tokens = go tokens [] []
     go (Semicolon:xs) [] parsed = Left SyntaxError
     go (Semicolon:xs) ys parsed = go xs [] (newdef ys : parsed)
       where
-        newdef list = Def (Fun (reverseParse (L.last list)) (L.init list))
+        newdef list =
+          Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text
 reverseParse (Word t) = t
+
+tokenizeFromText :: String -> T.Text -> Either ParseError [Token]
+tokenizeFromText = parse tokensParser
+
+parseFromText :: String -> T.Text -> Either ForthErr [ForthVal]
+parseFromText filename text =
+  case tokenizeFromText filename text of
+    Left _           -> Left ParseErr
+    Right tokenslist -> forthValParser tokenslist

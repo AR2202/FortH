@@ -74,7 +74,7 @@ data ForthErr
   | UnknownWord
   | InvalidWord
   | SyntaxError
-  | ParseError
+  | ParseErr
   deriving (Show, Read, Eq)
 
 data Token

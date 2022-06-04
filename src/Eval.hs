@@ -6,6 +6,10 @@ module Eval
   , initialNames
   , printF
   , eval
+  , evalAndPrintStackTop
+  , evalInput
+  , evalAndPrintStackTopRepl
+  , evalInputRepl
   ) where
 
 import           Data.IntMap as IM
@@ -13,6 +17,7 @@ import           Data.List   as L
 import qualified Data.Map    as Map
 import           Data.Text   as T
 import           ForthVal
+import           Parser
 
 initialNames :: Names
 initialNames =
@@ -102,6 +107,12 @@ eval env (Def fun) =
         }
       where newword = name fun
             newaddress = Map.size (names env)
+eval env (Forthvals forthvals) = L.foldl' eval' (Right env) forthvals
+  where
+    eval' eEnv forthval =
+      case eEnv of
+        Left error -> Left error
+        Right env  -> eval env forthval
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
@@ -111,3 +122,22 @@ evalDefComponents env (Word text) = fmap Address $ Map.lookup text (names env)
 
 evalDefBody env forthvals =
   sequenceA $ Prelude.map (evalDefComponents env) forthvals
+
+evalInput :: String -> T.Text -> Env -> Either ForthErr Env
+evalInput filename text env =
+  case parseFromText filename text of
+    Left e -> Left e
+    Right forthvals -> L.foldl' eval' (Right env) forthvals
+      where eval' eEnv forthval =
+              case eEnv of
+                Left error -> Left error
+                Right env  -> eval env forthval
+
+evalInputRepl :: T.Text -> Env -> Either ForthErr Env
+evalInputRepl = evalInput "repl"
+
+evalAndPrintStackTop :: String -> T.Text -> Env -> IO ()
+evalAndPrintStackTop filename text env =
+  mapM_ printF $ evalInput filename text env
+
+evalAndPrintStackTopRepl = evalAndPrintStackTop "repl"
