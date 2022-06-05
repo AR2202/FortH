@@ -10,6 +10,7 @@ module Eval
   , evalInput
   , evalAndPrintStackTopRepl
   , evalInputRepl
+  , evalFile
   ) where
 
 import           Data.IntMap as IM
@@ -141,3 +142,9 @@ evalAndPrintStackTop filename text env =
   mapM_ printF $ evalInput filename text env
 
 evalAndPrintStackTopRepl = evalAndPrintStackTop "repl"
+
+evalFile :: String -> IO ()
+evalFile filename = do
+  contents <- readFile filename
+  let text = T.unwords $ T.lines $ T.pack contents
+  evalAndPrintStackTop filename text initialEnv
