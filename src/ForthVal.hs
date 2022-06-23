@@ -29,6 +29,8 @@ data ForthVal
   | Address Int
   | Forthvals [ForthVal]
   | Def Fun
+  | If [ForthVal]
+  | Else [ForthVal]
   deriving (Show, Eq)
 
 data Fun =
@@ -43,6 +45,9 @@ data Operator
   | Sub
   | Times
   | Div
+  | Equal
+  | Less
+  | Greater
   deriving (Show, Eq, Generic)
 
 instance Arbitrary Operator where
@@ -83,4 +88,7 @@ data Token
   | Operator Char
   | Colon
   | Semicolon
+  | IF [Token]
+  | ELSE [Token]
+  | THEN
   deriving (Show, Eq)

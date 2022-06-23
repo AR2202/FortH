@@ -9,27 +9,33 @@ module Parser
   , tokenParser
   , tokensParser
   , parseFromText
+  , tokenizeFromText
   ) where
 
-import           Data.IntMap                        as IM
-import           Data.List                          as L
-import qualified Data.Map                           as Map
-import           Data.Text                          as T
+import           Data.IntMap                              as IM
+import           Data.List                                as L
+import qualified Data.Map                                 as Map
+import           Data.Text                                as T
 import           ForthVal
-import qualified Text.Parsec.Language               as Lang
+import qualified Text.Parsec.Language                     as Lang
 
 import           Text.Parsec
 import           Text.Parsec.Expr
-import qualified Text.Parsec.Language               as Lang
+import qualified Text.Parsec.Language                     as Lang
+
 import           Text.Parsec.Text
-import qualified Text.Parsec.Token                  as Tok
+import qualified Text.Parsec.Token                        as Tok
 import           Text.ParserCombinators.Parsec.Char
+import           Text.ParserCombinators.Parsec.Combinator
 
 -- Lexer
 ideToken :: Parser Token
 ideToken =
   Ide . T.pack <$>
   ((++) <$> many digit <*> ((++) <$> many1 letter <*> many alphaNum))
+
+wordToken :: Parser Token
+wordToken = Ide . T.pack <$> (spaces *> many1 letter <* spaces)
 
 numToken :: Parser Token
 numToken = Num . T.pack <$> (spaces *> many1 digit <* spaces)
@@ -41,11 +47,42 @@ semicolonToken :: Parser Token
 semicolonToken = const Semicolon <$> (spaces >> char ';' >> spaces)
 
 operatorToken :: Parser Token
-operatorToken = Operator <$> (spaces *> oneOf "+-*/" <* spaces)
+operatorToken = Operator <$> (spaces *> oneOf "+-*/=<>" <* spaces)
+
+ifToken :: Parser Token
+ifToken =
+  IF <$>
+  between (string "IF") (lookAhead (try (string "THEN"))) (many1 allTokenParser)
+
+ifelseToken :: Parser Token
+ifelseToken =
+  IF <$>
+  between (string "IF") (lookAhead (try (string "ELSE"))) (many1 allTokenParser)
+
+elseToken :: Parser Token
+elseToken =
+  ELSE <$>
+  between
+    (string "ELSE")
+    (lookAhead (try (string "THEN")))
+    (many1 allTokenParser)
+
+thenToken :: Parser Token
+thenToken = const THEN <$> (spaces *> string "THEN" <* spaces)
+
+-- can't yet parse identifiers inside if or else statements
+allTokenParser :: Parser Token
+allTokenParser =
+  numToken <|> colonToken <|> operatorToken <|> ifToken <|> semicolonToken
 
 tokenParser :: Parser Token
 tokenParser =
-  try colonToken <|> try semicolonToken <|> try operatorToken <|> try ideToken <|>
+  try colonToken <|> try semicolonToken <|> try operatorToken <|>
+  try ifelseToken <|>
+  try elseToken <|>
+  try ifToken <|>
+  try thenToken <|>
+  try ideToken <|>
   try numToken
 
 tokensParser :: Parser [Token]
@@ -54,6 +91,7 @@ tokensParser = spaces >> many (tokenParser <* spaces) <* eof
 -- Parser
 -- This is a kind of clumsy hand-written Token parser because Parsec doesn't support this
 -- custom Token Type
+-- todo: parsing if else
 forthValParser :: [Token] -> Either ForthErr [ForthVal]
 forthValParser tokens = go tokens [] []
   where

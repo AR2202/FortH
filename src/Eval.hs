@@ -23,7 +23,22 @@ import           Parser
 initialNames :: Names
 initialNames =
   Map.fromList $
-  Prelude.zip ["+", "-", "*", "/", "DUP", "DROP", "SWAP", "OVER", "ROT"] [0 ..]
+  Prelude.zip
+    [ "+"
+    , "-"
+    , "*"
+    , "/"
+    , "="
+    , "<"
+    , ">"
+    , "DUP"
+    , "DROP"
+    , "SWAP"
+    , "OVER"
+    , "ROT"
+    , "THEN"
+    ]
+    [0 ..]
 
 initialDefs :: Defs
 initialDefs =
@@ -34,11 +49,15 @@ initialDefs =
     , Arith Sub
     , Arith Times
     , Arith Div
+    , Arith Equal
+    , Arith Less
+    , Arith Greater
     , Manip Dup
     , Manip Drop
     , Manip Swap
     , Manip Over
     , Manip Rot
+    , Manip Drop
     ]
 
 initialEnv :: Env
@@ -57,10 +76,25 @@ eval env (Arith op) =
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
     x:y:zs -> Right $ env {stack = operation op y x : zs}
-      where operation Add   = (+)
-            operation Sub   = (-)
+      where operation Add = (+)
+            operation Sub = (-)
             operation Times = (*)
-            operation Div   = div
+            operation Div = div
+            operation Equal =
+              \x y ->
+                if x == y
+                  then 1
+                  else 0
+            operation Less =
+              \x y ->
+                if x < y
+                  then 1
+                  else 0
+            operation Greater =
+              \x y ->
+                if x > y
+                  then 1
+                  else 0
 eval env (Manip Dup) =
   case stack env of
     []     -> Left StackUnderflow
@@ -114,6 +148,16 @@ eval env (Forthvals forthvals) = L.foldl' eval' (Right env) forthvals
       case eEnv of
         Left error -> Left error
         Right env  -> eval env forthval
+eval env (If forthvals) =
+  case stack env of
+    []   -> Left StackUnderflow
+    0:xs -> Right env
+    _    -> eval env (Forthvals forthvals)
+eval env (Else forthvals) =
+  case stack env of
+    []   -> Left StackUnderflow
+    1:xs -> Right env
+    _    -> eval env (Forthvals forthvals)
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
