@@ -40,12 +40,12 @@ ideToken =
 wordToken :: Parser Token
 wordToken = do
   whitespace
-  e <- many1 letter
+  firstDigit <- many digit
+  firstletter <- many1 letter
+  nonFirstLetter <- many alphaNum
   whitespace
-  guard (e /= "THEN")
-  guard (e /= "ELSE")
-  guard (e /= "IF")
-  return $ Ide $ T.pack e
+  guard (firstletter `notElem` ["THEN", "ELSE", "IF"])
+  return $ Ide $ T.pack (firstDigit ++ firstletter ++ nonFirstLetter)
 
 numToken :: Parser Token
 numToken = Num . T.pack <$> (spaces *> many1 digit <* spaces)
@@ -62,13 +62,14 @@ operatorToken = Operator <$> (spaces *> oneOf "+-*/=<>" <* spaces)
 ifToken :: Parser Token
 ifToken =
   IF <$>
-  between (string "IF") (lookAhead (try (string "THEN"))) (many1 allTokenParser)
+  between (string "IF") (lookAhead (try (string "THEN"))) (many allTokenParser)
 
 ifelseToken :: Parser Token
 ifelseToken =
   IF <$>
-  between (string "IF") (lookAhead (try (string "ELSE"))) (many1 allTokenParser)
+  between (string "IF") (lookAhead (try (string "ELSE"))) (many allTokenParser)
 
+-- this is not yet good as this doesn't distinguish between empty if blocks and syntax error
 unclosedIF :: Parser Token
 unclosedIF =
   const (IF []) <$>
@@ -85,17 +86,17 @@ elseToken =
   between
     (string "ELSE")
     (lookAhead (try (string "THEN")))
-    (many1 allTokenParser)
+    (many allTokenParser)
 
 thenToken :: Parser Token
 thenToken = const THEN <$> (spaces *> string "THEN" <* spaces)
 
--- can't yet parse identifiers inside if or else statements
+-- can't yet parse nested if or else statements
 allTokenParser :: Parser Token
 allTokenParser =
-  try numToken <|> try colonToken <|> try operatorToken <|> try semicolonToken <|>
-  try ifToken <|>
-  try wordToken
+  try colonToken <|> try operatorToken <|> try semicolonToken <|> try wordToken <|>
+  try numToken <|>
+  ifToken
 
 tokenParser :: Parser Token
 tokenParser =
