@@ -17,25 +17,35 @@ import           Data.List                                as L
 import qualified Data.Map                                 as Map
 import           Data.Text                                as T
 import           ForthVal
-import qualified Text.Parsec.Language                     as Lang
 
 import           Text.Parsec
 import           Text.Parsec.Expr
 import qualified Text.Parsec.Language                     as Lang
 
+import           Control.Monad                            (guard, void)
 import           Text.Parsec.Text
 import qualified Text.Parsec.Token                        as Tok
 import           Text.ParserCombinators.Parsec.Char
 import           Text.ParserCombinators.Parsec.Combinator
 
 -- Lexer
+whitespace :: Parser ()
+whitespace = void $ many $ oneOf " \n\t"
+
 ideToken :: Parser Token
 ideToken =
   Ide . T.pack <$>
   ((++) <$> many digit <*> ((++) <$> many1 letter <*> many alphaNum))
 
 wordToken :: Parser Token
-wordToken = Ide . T.pack <$> (spaces *> many1 letter <* spaces)
+wordToken = do
+  whitespace
+  e <- many1 letter
+  whitespace
+  guard (e /= "THEN")
+  guard (e /= "ELSE")
+  guard (e /= "IF")
+  return $ Ide $ T.pack e
 
 numToken :: Parser Token
 numToken = Num . T.pack <$> (spaces *> many1 digit <* spaces)
@@ -59,6 +69,16 @@ ifelseToken =
   IF <$>
   between (string "IF") (lookAhead (try (string "ELSE"))) (many1 allTokenParser)
 
+unclosedIF :: Parser Token
+unclosedIF =
+  const (IF []) <$>
+  (string "IF" >> many1 allTokenParser >> notFollowedBy (string "THEN"))
+
+unclosedELSE :: Parser Token
+unclosedELSE =
+  const (ELSE []) <$>
+  (string "ELSE" >> many1 allTokenParser >> notFollowedBy (string "THEN"))
+
 elseToken :: Parser Token
 elseToken =
   ELSE <$>
@@ -73,7 +93,9 @@ thenToken = const THEN <$> (spaces *> string "THEN" <* spaces)
 -- can't yet parse identifiers inside if or else statements
 allTokenParser :: Parser Token
 allTokenParser =
-  numToken <|> colonToken <|> operatorToken <|> ifToken <|> semicolonToken
+  try numToken <|> try colonToken <|> try operatorToken <|> try semicolonToken <|>
+  try ifToken <|>
+  try wordToken
 
 tokenParser :: Parser Token
 tokenParser =
@@ -81,12 +103,14 @@ tokenParser =
   try ifelseToken <|>
   try elseToken <|>
   try ifToken <|>
+  try unclosedIF <|>
+  try unclosedELSE <|>
   try thenToken <|>
-  try ideToken <|>
+  try wordToken <|>
   try numToken
 
 tokensParser :: Parser [Token]
-tokensParser = spaces >> many (tokenParser <* spaces) <* eof
+tokensParser = whitespace >> many (tokenParser <* whitespace) <* eof
 
 -- Parser
 -- This is a kind of clumsy hand-written Token parser because Parsec doesn't support this
