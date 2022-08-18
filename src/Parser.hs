@@ -138,6 +138,15 @@ forthValParser tokens = go tokens [] []
       where
         newdef list =
           Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
+    go (THEN:xs) ys parsed = go xs ys parsed
+    go (IF iftokens:xs) ys parsed =
+      case forthValParser iftokens of
+        Left err           -> Left err
+        Right parseresults -> go xs ys (If parseresults : parsed)
+    go (ELSE iftokens:xs) ys parsed =
+      case forthValParser iftokens of
+        Left err           -> Left err
+        Right parseresults -> go xs ys (Else parseresults : parsed)
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text
