@@ -15,11 +15,13 @@ repl' env = do
   putStr "FortHi> "
   input <- getLine
   let newenv = evalInputRepl (T.pack input) env
-  if input == ":q"
-    then putStrLn "Goodbye"
-    else case newenv of
-           Left e    -> print e >> repl' env
-           Right new -> printF new >> repl' new
+  case input of
+    ":q" -> putStrLn "Goodbye"
+    ".s" -> printStack env >> repl' env
+    _ ->
+      case newenv of
+        Left e    -> print e >> repl' env
+        Right new -> printF new >> repl' new
 
 repl :: IO ()
 repl = repl' initialEnv
