@@ -72,12 +72,12 @@ ifelseToken =
 -- this is not yet good as this doesn't distinguish between empty if blocks and syntax error
 unclosedIF :: Parser Token
 unclosedIF =
-  const (IF []) <$>
+  const UNCLOSED <$>
   (string "IF" >> many1 allTokenParser >> notFollowedBy (string "THEN"))
 
 unclosedELSE :: Parser Token
 unclosedELSE =
-  const (ELSE []) <$>
+  const UNCLOSED <$>
   (string "ELSE" >> many1 allTokenParser >> notFollowedBy (string "THEN"))
 
 elseToken :: Parser Token
@@ -96,7 +96,8 @@ allTokenParser :: Parser Token
 allTokenParser =
   try colonToken <|> try operatorToken <|> try semicolonToken <|> try wordToken <|>
   try numToken <|>
-  ifToken
+  try (ifToken <* thenToken) <|>
+  try unclosedIF
 
 tokenParser :: Parser Token
 tokenParser =
@@ -122,6 +123,7 @@ forthValParser tokens = go tokens [] []
   where
     go [] [] parsed = Right $ L.reverse parsed
     go [] xs _ = Left SyntaxError
+    go (UNCLOSED:xs) _ _ = Left SyntaxError
     go (Ide text:xs) [] parsed = go xs [] (Word text : parsed)
     go (Ide text:xs) ys parsed = go xs (Word text : ys) parsed
     go (Num text:xs) [] parsed =

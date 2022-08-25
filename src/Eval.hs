@@ -5,6 +5,7 @@ module Eval
   , initialEnv
   , initialNames
   , printF
+  , printStack
   , eval
   , evalAndPrintStackTop
   , evalInput
@@ -68,6 +69,9 @@ printF env =
   case stack env of
     []     -> return ()
     (x:xs) -> print x
+
+printStack :: Env -> IO ()
+printStack env = mapM_ print $ L.reverse $ stack env
 
 eval :: Env -> ForthVal -> Either ForthErr Env
 eval env (Number x) = Right env {stack = x : stack env}

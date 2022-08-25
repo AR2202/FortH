@@ -91,4 +91,5 @@ data Token
   | IF [Token]
   | ELSE [Token]
   | THEN
+  | UNCLOSED
   deriving (Show, Eq)
