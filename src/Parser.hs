@@ -62,49 +62,60 @@ operatorToken = Operator <$> (spaces *> oneOf "+-*/=<>" <* spaces)
 ifToken :: Parser Token
 ifToken =
   IF <$>
-  between (string "IF") (lookAhead (try (string "THEN"))) (many allTokenParser)
+  between
+    (string "IF" <* spaces)
+    (lookAhead (try (string "THEN")))
+    (many allTokenParser)
 
 ifelseToken :: Parser Token
 ifelseToken =
-  IF <$>
-  between (string "IF") (lookAhead (try (string "ELSE"))) (many allTokenParser)
+  IFELSE <$>
+  between
+    (string "IF" <* spaces)
+    (lookAhead (try (string "ELSE")))
+    (many allTokenParser) <*>
+  between
+    (string "ELSE" <* spaces)
+    (lookAhead (try (string "THEN")))
+    (many allTokenParser)
 
--- this is not yet good as this doesn't distinguish between empty if blocks and syntax error
 unclosedIF :: Parser Token
 unclosedIF =
   const UNCLOSED <$>
-  (string "IF" >> many1 allTokenParser >> notFollowedBy (string "THEN"))
+  (string "IF" <* spaces >> many1 allTokenParser >>
+   notFollowedBy (string "THEN"))
 
 unclosedELSE :: Parser Token
 unclosedELSE =
   const UNCLOSED <$>
-  (string "ELSE" >> many1 allTokenParser >> notFollowedBy (string "THEN"))
+  (string "ELSE" <* spaces >> many1 allTokenParser >>
+   notFollowedBy (string "THEN"))
 
-elseToken :: Parser Token
+{- elseToken :: Parser Token
 elseToken =
   ELSE <$>
   between
-    (string "ELSE")
+    (string "ELSE" <* spaces)
     (lookAhead (try (string "THEN")))
-    (many allTokenParser)
-
+    (many allTokenParser) -}
 thenToken :: Parser Token
 thenToken = const THEN <$> (spaces *> string "THEN" <* spaces)
 
--- can't yet parse nested if or else statements
 allTokenParser :: Parser Token
 allTokenParser =
   try colonToken <|> try operatorToken <|> try semicolonToken <|> try wordToken <|>
   try numToken <|>
+  try (ifelseToken <* thenToken) <|>
+  --try elseToken <|>
   try (ifToken <* thenToken) <|>
-  try unclosedIF
+  unclosedIF
 
 tokenParser :: Parser Token
 tokenParser =
   try colonToken <|> try semicolonToken <|> try operatorToken <|>
-  try ifelseToken <|>
-  try elseToken <|>
-  try ifToken <|>
+  try (ifelseToken <* thenToken) <|>
+  --try elseToken <|>
+  try (ifToken <* thenToken) <|>
   try unclosedIF <|>
   try unclosedELSE <|>
   try thenToken <|>
@@ -145,10 +156,14 @@ forthValParser tokens = go tokens [] []
       case forthValParser iftokens of
         Left err           -> Left err
         Right parseresults -> go xs ys (If parseresults : parsed)
-    go (ELSE iftokens:xs) ys parsed =
+    go ((IFELSE iftokens elsetokens):xs) ys parsed =
       case forthValParser iftokens of
-        Left err           -> Left err
-        Right parseresults -> go xs ys (Else parseresults : parsed)
+        Left err -> Left err
+        Right parseresults ->
+          case forthValParser elsetokens of
+            Left err -> Left err
+            Right parseresultsElse ->
+              go xs ys (IfElse parseresults parseresultsElse : parsed)
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text

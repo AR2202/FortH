@@ -30,7 +30,7 @@ data ForthVal
   | Forthvals [ForthVal]
   | Def Fun
   | If [ForthVal]
-  | Else [ForthVal]
+  | IfElse [ForthVal] [ForthVal]
   deriving (Show, Eq)
 
 data Fun =
@@ -89,7 +89,7 @@ data Token
   | Colon
   | Semicolon
   | IF [Token]
-  | ELSE [Token]
+  | IFELSE [Token] [Token]
   | THEN
   | UNCLOSED
   deriving (Show, Eq)

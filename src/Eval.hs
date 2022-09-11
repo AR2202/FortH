@@ -157,11 +157,11 @@ eval env (If forthvals) =
     []   -> Left StackUnderflow
     0:xs -> Right env
     _    -> eval env (Forthvals forthvals)
-eval env (Else forthvals) =
+eval env (IfElse ifvals elsevals) =
   case stack env of
     []   -> Left StackUnderflow
-    1:xs -> Right env
-    _    -> eval env (Forthvals forthvals)
+    0:xs -> eval env (Forthvals elsevals)
+    _    -> eval env (Forthvals ifvals)
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
