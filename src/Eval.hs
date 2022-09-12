@@ -162,6 +162,14 @@ eval env (IfElse ifvals elsevals) =
     []   -> Left StackUnderflow
     0:xs -> eval env (Forthvals elsevals)
     _    -> eval env (Forthvals ifvals)
+eval env (DoLoop loop) = go (Right env) (start loop) (step loop) (loopbody loop)
+  where
+    go (Left err) index step forthvals = Left err
+    go (Right env') index step forthvals
+      | (step > 0 && index >= stop loop) || (step < 0 && index < stop loop) =
+        Right env'
+      | otherwise =
+        go (eval env' (Forthvals forthvals)) (index + step) step forthvals
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text

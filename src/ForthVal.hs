@@ -11,6 +11,7 @@ module ForthVal
   , Defs(..)
   , Fun(..)
   , Token(..)
+  , Loop(..)
   ) where
 
 import           Data.IntMap                       as IM
@@ -31,6 +32,16 @@ data ForthVal
   | Def Fun
   | If [ForthVal]
   | IfElse [ForthVal] [ForthVal]
+  | DoLoop Loop
+  deriving (Show, Eq)
+
+data Loop =
+  Loop
+    { start    :: Int
+    , stop     :: Int
+    , step     :: Int
+    , loopbody :: [ForthVal]
+    }
   deriving (Show, Eq)
 
 data Fun =

@@ -29,6 +29,7 @@ import           Text.ParserCombinators.Parsec.Char
 import           Text.ParserCombinators.Parsec.Combinator
 
 -- Lexer
+-------------------------------------------------------------------------
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"
 
@@ -91,13 +92,6 @@ unclosedELSE =
   (string "ELSE" <* spaces >> many1 allTokenParser >>
    notFollowedBy (string "THEN"))
 
-{- elseToken :: Parser Token
-elseToken =
-  ELSE <$>
-  between
-    (string "ELSE" <* spaces)
-    (lookAhead (try (string "THEN")))
-    (many allTokenParser) -}
 thenToken :: Parser Token
 thenToken = const THEN <$> (spaces *> string "THEN" <* spaces)
 
@@ -106,7 +100,6 @@ allTokenParser =
   try colonToken <|> try operatorToken <|> try semicolonToken <|> try wordToken <|>
   try numToken <|>
   try (ifelseToken <* thenToken) <|>
-  --try elseToken <|>
   try (ifToken <* thenToken) <|>
   unclosedIF
 
@@ -114,7 +107,6 @@ tokenParser :: Parser Token
 tokenParser =
   try colonToken <|> try semicolonToken <|> try operatorToken <|>
   try (ifelseToken <* thenToken) <|>
-  --try elseToken <|>
   try (ifToken <* thenToken) <|>
   try unclosedIF <|>
   try unclosedELSE <|>
@@ -126,6 +118,7 @@ tokensParser :: Parser [Token]
 tokensParser = whitespace >> many (tokenParser <* whitespace) <* eof
 
 -- Parser
+------------------------------------------------------------------------------------------
 -- This is a kind of clumsy hand-written Token parser because Parsec doesn't support this
 -- custom Token Type
 -- todo: parsing if else
@@ -156,7 +149,7 @@ forthValParser tokens = go tokens [] []
       case forthValParser iftokens of
         Left err           -> Left err
         Right parseresults -> go xs ys (If parseresults : parsed)
-    go ((IFELSE iftokens elsetokens):xs) ys parsed =
+    go (IFELSE iftokens elsetokens:xs) ys parsed =
       case forthValParser iftokens of
         Left err -> Left err
         Right parseresults ->
