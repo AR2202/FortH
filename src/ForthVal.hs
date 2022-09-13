@@ -33,13 +33,13 @@ data ForthVal
   | If [ForthVal]
   | IfElse [ForthVal] [ForthVal]
   | DoLoop Loop
+  | PlusLoop Loop
   deriving (Show, Eq)
 
 data Loop =
   Loop
     { start    :: Int
     , stop     :: Int
-    , step     :: Int
     , loopbody :: [ForthVal]
     }
   deriving (Show, Eq)

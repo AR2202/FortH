@@ -162,14 +162,30 @@ eval env (IfElse ifvals elsevals) =
     []   -> Left StackUnderflow
     0:xs -> eval env (Forthvals elsevals)
     _    -> eval env (Forthvals ifvals)
-eval env (DoLoop loop) = go (Right env) (start loop) (step loop) (loopbody loop)
+eval env (DoLoop loop) = go (Right env) (start loop) (loopbody loop)
   where
-    go (Left err) index step forthvals = Left err
+    go (Left err) _ _ = Left err
+    go (Right env') index forthvals
+      | index >= stop loop = Right env'
+      | otherwise = go (eval env' (Forthvals forthvals)) (index + 1) forthvals
+eval env (PlusLoop loop) =
+  case stack env of
+    []     -> Left StackUnderflow
+    (x:xs) -> go (Right env) (start loop) x (loopbody loop)
+  where
+    go (Left err) _ _ _ = Left err
     go (Right env') index step forthvals
+      | step == 0 = Left SyntaxError
       | (step > 0 && index >= stop loop) || (step < 0 && index < stop loop) =
         Right env'
-      | otherwise =
-        go (eval env' (Forthvals forthvals)) (index + step) step forthvals
+      | (stack <$> newenv) == Right [] = Left StackUnderflow
+      | otherwise = go newenv (index + step) newstep forthvals
+      where
+        newenv = eval env' (Forthvals forthvals)
+        newstep =
+          case newenv of
+            Left _        -> 0
+            Right newenv' -> L.head $ stack newenv'
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
