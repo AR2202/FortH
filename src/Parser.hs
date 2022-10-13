@@ -45,7 +45,7 @@ wordToken = do
   firstletter <- many1 letter
   nonFirstLetter <- many alphaNum
   whitespace
-  guard (firstletter `notElem` ["THEN", "ELSE", "IF"])
+  guard (firstletter `notElem` ["THEN", "ELSE", "IF", "DO", "LOOP", "+LOOP"])
   return $ Ide $ T.pack (firstDigit ++ firstletter ++ nonFirstLetter)
 
 numToken :: Parser Token
@@ -58,7 +58,8 @@ semicolonToken :: Parser Token
 semicolonToken = const Semicolon <$> (spaces >> char ';' >> spaces)
 
 operatorToken :: Parser Token
-operatorToken = Operator <$> (spaces *> oneOf "+-*/=<>" <* spaces)
+operatorToken =
+  Operator <$> (spaces *> oneOf "+-*/=<>" <* (space <|> (lookAhead digit)))
 
 ifToken :: Parser Token
 ifToken =
@@ -95,24 +96,58 @@ unclosedELSE =
 thenToken :: Parser Token
 thenToken = const THEN <$> (spaces *> string "THEN" <* spaces)
 
+loopToken :: Parser Token
+loopToken = const THEN <$> (spaces *> string "LOOP" <* spaces)
+
+ploopToken :: Parser Token
+ploopToken = const THEN <$> (spaces *> string "+LOOP" <* spaces)
+
+doLoopToken :: Parser Token
+doLoopToken =
+  DOLOOP <$>
+  between
+    (string "DO" <* spaces)
+    (lookAhead (string "LOOP"))
+    (many allTokenParser)
+
+plusLoopToken :: Parser Token
+plusLoopToken =
+  PLUSLOOP <$>
+  between
+    (string "DO" <* spaces)
+    (lookAhead (try (string "+LOOP")))
+    (many allTokenParser)
+
+unclosedDo :: Parser Token
+unclosedDo =
+  const UNCLOSED <$>
+  (string "DO" <* spaces >> many1 allTokenParser >>
+   notFollowedBy (string "LOOP"))
+
 allTokenParser :: Parser Token
 allTokenParser =
   try colonToken <|> try operatorToken <|> try semicolonToken <|> try wordToken <|>
   try numToken <|>
+  try (plusLoopToken <* ploopToken) <|>
+  try (doLoopToken <* loopToken) <|>
   try (ifelseToken <* thenToken) <|>
   try (ifToken <* thenToken) <|>
+  try unclosedDo <|>
   unclosedIF
 
 tokenParser :: Parser Token
 tokenParser =
-  try colonToken <|> try semicolonToken <|> try operatorToken <|>
+  try colonToken <|> try semicolonToken <|> try (plusLoopToken <* ploopToken) <|>
+  try operatorToken <|>
   try (ifelseToken <* thenToken) <|>
   try (ifToken <* thenToken) <|>
   try unclosedIF <|>
   try unclosedELSE <|>
   try thenToken <|>
   try wordToken <|>
-  try numToken
+  try numToken <|>
+  try (doLoopToken <* loopToken) <|>
+  try unclosedDo
 
 tokensParser :: Parser [Token]
 tokensParser = whitespace >> many (tokenParser <* whitespace) <* eof
@@ -128,6 +163,25 @@ forthValParser tokens = go tokens [] []
     go [] [] parsed = Right $ L.reverse parsed
     go [] xs _ = Left SyntaxError
     go (UNCLOSED:xs) _ _ = Left SyntaxError
+    go (Num x:Num y:DOLOOP dotokens:xs) ys parsed =
+      case forthValParser dotokens of
+        Left err -> Left err
+        Right parseresults ->
+          go
+            xs
+            ys
+            (DoLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
+             parsed)
+    go (Num x:Num y:PLUSLOOP dotokens:xs) ys parsed =
+      case forthValParser dotokens of
+        Left err -> Left err
+        Right parseresults ->
+          go
+            xs
+            ys
+            (PlusLoop
+               (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
+             parsed)
     go (Ide text:xs) [] parsed = go xs [] (Word text : parsed)
     go (Ide text:xs) ys parsed = go xs (Word text : ys) parsed
     go (Num text:xs) [] parsed =
@@ -157,6 +211,7 @@ forthValParser tokens = go tokens [] []
             Left err -> Left err
             Right parseresultsElse ->
               go xs ys (IfElse parseresults parseresultsElse : parsed)
+    go _ _ _ = Left SyntaxError
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text

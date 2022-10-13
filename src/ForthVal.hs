@@ -103,4 +103,6 @@ data Token
   | IFELSE [Token] [Token]
   | THEN
   | UNCLOSED
+  | DOLOOP [Token]
+  | PLUSLOOP [Token]
   deriving (Show, Eq)
