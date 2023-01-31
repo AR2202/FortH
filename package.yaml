@@ -30,6 +30,8 @@ dependencies:
 - generic-random
 - generic-arbitrary
 - parsec-numbers
+- split
+- vector
 
 library:
   source-dirs: src

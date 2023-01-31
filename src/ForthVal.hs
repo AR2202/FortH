@@ -17,6 +17,7 @@ module ForthVal
 import           Data.IntMap                       as IM
 import qualified Data.Map                          as Map
 import           Data.Text                         as T
+import qualified Data.Vector                       as V
 import           Generic.Random                    (genericArbitrary', uniform)
 import           GHC.Generics
 import           Test.QuickCheck                   (Arbitrary (..))
@@ -34,6 +35,7 @@ data ForthVal
   | IfElse [ForthVal] [ForthVal]
   | DoLoop Loop
   | PlusLoop Loop
+  | Variable T.Text
   deriving (Show, Eq)
 
 data Loop =
@@ -82,6 +84,7 @@ data Env =
     { names       :: Names
     , definitions :: Defs
     , stack       :: [Int]
+    , mem         :: IntMap Int
     }
   deriving (Show, Eq)
 

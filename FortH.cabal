@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4418b7822e4875e7326cbdfbb7dd60b6ee1e902748710fbc22e13f5f3a56e137
+-- hash: c29eb6cb65ff635a97328ea845b01297fb929cbffd5964ab1c8818bc089acd23
 
 name:           FortH
 version:        0.1.0.0
@@ -47,7 +47,9 @@ library
     , mtl
     , parsec
     , parsec-numbers
+    , split
     , text
+    , vector
   default-language: Haskell2010
 
 executable FortH-exe
@@ -68,7 +70,9 @@ executable FortH-exe
     , mtl
     , parsec
     , parsec-numbers
+    , split
     , text
+    , vector
   default-language: Haskell2010
 
 test-suite FortH-test
@@ -90,5 +94,7 @@ test-suite FortH-test
     , mtl
     , parsec
     , parsec-numbers
+    , split
     , text
+    , vector
   default-language: Haskell2010

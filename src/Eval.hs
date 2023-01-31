@@ -62,7 +62,7 @@ initialDefs =
     ]
 
 initialEnv :: Env
-initialEnv = Env initialNames initialDefs []
+initialEnv = Env initialNames initialDefs [] IM.empty
 
 printF :: Env -> IO ()
 printF env =
@@ -186,6 +186,16 @@ eval env (PlusLoop loop) =
           case newenv of
             Left _        -> 0
             Right newenv' -> L.head $ stack newenv'
+eval env (Variable varname) =
+  Right $
+  env
+    { names = Map.insert varname newaddress (names env)
+    , definitions = IM.insert newaddress (Number nextmemaddr) (definitions env)
+    , mem = IM.insert nextmemaddr 0 (mem env)
+    }
+  where
+    newaddress = Map.size (names env)
+    nextmemaddr = IM.size (mem env)
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
