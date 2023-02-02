@@ -38,6 +38,8 @@ initialNames =
     , "OVER"
     , "ROT"
     , "THEN"
+    , "!"
+    , "@"
     ]
     [0 ..]
 
@@ -59,6 +61,8 @@ initialDefs =
     , Manip Over
     , Manip Rot
     , Manip Drop
+    , Mem Store
+    , Mem Retrieve
     ]
 
 initialEnv :: Env
@@ -74,67 +78,106 @@ printStack :: Env -> IO ()
 printStack env = mapM_ print $ L.reverse $ stack env
 
 eval :: Env -> ForthVal -> Either ForthErr Env
-eval env (Number x) = Right env {stack = x : stack env}
-eval env (Arith op) =
+eval env (Number x)               = evalNum env x
+eval env (Arith op)               = evalOp env op
+eval env (Manip Dup)              = evalDup env
+eval env (Manip Drop)             = evalDrop env
+eval env (Manip Swap)             = evalSwap env
+eval env (Manip Over)             = evalOver env
+eval env (Manip Rot)              = evalRot env
+eval env (Word name)              = evalWord env name
+eval env (Address i)              = evalAddress env i
+eval env (Def fun)                = evalDef env fun
+eval env (Forthvals forthvals)    = evalForthvals env forthvals
+eval env (If forthvals)           = evalIf env forthvals
+eval env (IfElse ifvals elsevals) = evalIfElse env ifvals elsevals
+eval env (DoLoop loop)            = evalDoLoop env loop
+eval env (PlusLoop loop)          = evalPlusLoop env loop
+eval env (Variable varname)       = evalVar env varname
+eval env (Mem Store)              = evalMemStore env
+eval env (Mem Retrieve)           = evalMemRetrieve env
+
+evalNum :: Env -> Int -> Either ForthErr Env
+evalNum env x = Right env {stack = x : stack env}
+
+evalOp :: Env -> Operator -> Either ForthErr Env
+evalOp env op =
   case stack env of
-    [] -> Left StackUnderflow
-    [x] -> Left StackUnderflow
+    []     -> Left StackUnderflow
+    [x]    -> Left StackUnderflow
     x:y:zs -> Right $ env {stack = operation op y x : zs}
-      where operation Add = (+)
-            operation Sub = (-)
-            operation Times = (*)
-            operation Div = div
-            operation Equal =
-              \x y ->
-                if x == y
-                  then 1
-                  else 0
-            operation Less =
-              \x y ->
-                if x < y
-                  then 1
-                  else 0
-            operation Greater =
-              \x y ->
-                if x > y
-                  then 1
-                  else 0
-eval env (Manip Dup) =
+
+operation :: Operator -> (Int -> Int -> Int)
+operation Add = (+)
+operation Sub = (-)
+operation Times = (*)
+operation Div = div
+operation Equal =
+  \x y ->
+    if x == y
+      then 1
+      else 0
+operation Less =
+  \x y ->
+    if x < y
+      then 1
+      else 0
+operation Greater =
+  \x y ->
+    if x > y
+      then 1
+      else 0
+
+evalDup :: Env -> Either ForthErr Env
+evalDup env =
   case stack env of
     []     -> Left StackUnderflow
     (x:xs) -> Right $ env {stack = x : x : xs}
-eval env (Manip Drop) =
+
+evalDrop :: Env -> Either ForthErr Env
+evalDrop env =
   case stack env of
     []     -> Left StackUnderflow
     (x:xs) -> Right $ env {stack = xs}
-eval env (Manip Swap) =
+
+evalSwap :: Env -> Either ForthErr Env
+evalSwap env =
   case stack env of
     []     -> Left StackUnderflow
     [x]    -> Left StackUnderflow
     x:y:zs -> Right $ env {stack = y : x : zs}
-eval env (Manip Over) =
+
+evalOver :: Env -> Either ForthErr Env
+evalOver env =
   case stack env of
     []     -> Left StackUnderflow
     [x]    -> Left StackUnderflow
     x:y:zs -> Right $ env {stack = x : y : x : zs}
-eval env (Manip Rot) =
+
+evalRot :: Env -> Either ForthErr Env
+evalRot env =
   case stack env of
     []       -> Left StackUnderflow
     [x]      -> Left StackUnderflow
     x:[y]    -> Left StackUnderflow
     x:y:z:zs -> Right $ env {stack = y : z : x : zs}
-eval env (Word name) =
+
+evalWord :: Env -> T.Text -> Either ForthErr Env
+evalWord env name =
   case Map.lookup name (names env) of
     Nothing -> Left UnknownWord
     Just i ->
       case IM.lookup i (definitions env) of
         Nothing       -> Left UnknownWord
         Just forthval -> eval env forthval
-eval env (Address i) =
+
+evalAddress :: Env -> Int -> Either ForthErr Env
+evalAddress env i =
   case IM.lookup i (definitions env) of
     Nothing       -> Left UnknownWord
     Just forthval -> eval env forthval
-eval env (Def fun) =
+
+evalDef env fun =
   case evalDefBody env (body fun) of
     Nothing -> Left UnknownWord
     Just forthvals ->
@@ -146,29 +189,34 @@ eval env (Def fun) =
         }
       where newword = name fun
             newaddress = Map.size (names env)
-eval env (Forthvals forthvals) = L.foldl' eval' (Right env) forthvals
+
+evalForthvals env forthvals = L.foldl' eval' (Right env) forthvals
   where
     eval' eEnv forthval =
       case eEnv of
         Left error -> Left error
         Right env  -> eval env forthval
-eval env (If forthvals) =
+
+evalIf env forthvals =
   case stack env of
     []   -> Left StackUnderflow
     0:xs -> Right env
     _    -> eval env (Forthvals forthvals)
-eval env (IfElse ifvals elsevals) =
+
+evalIfElse env ifvals elsevals =
   case stack env of
     []   -> Left StackUnderflow
     0:xs -> eval env (Forthvals elsevals)
     _    -> eval env (Forthvals ifvals)
-eval env (DoLoop loop) = go (Right env) (start loop) (loopbody loop)
+
+evalDoLoop env loop = go (Right env) (start loop) (loopbody loop)
   where
     go (Left err) _ _ = Left err
     go (Right env') index forthvals
       | index >= stop loop = Right env'
       | otherwise = go (eval env' (Forthvals forthvals)) (index + 1) forthvals
-eval env (PlusLoop loop) =
+
+evalPlusLoop env loop =
   case stack env of
     []     -> Left StackUnderflow
     (x:xs) -> go (Right env) (start loop) x (loopbody loop)
@@ -186,7 +234,9 @@ eval env (PlusLoop loop) =
           case newenv of
             Left _        -> 0
             Right newenv' -> L.head $ stack newenv'
-eval env (Variable varname) =
+
+evalVar :: Env -> T.Text -> Either ForthErr Env
+evalVar env varname =
   Right $
   env
     { names = Map.insert varname newaddress (names env)
@@ -196,6 +246,22 @@ eval env (Variable varname) =
   where
     newaddress = Map.size (names env)
     nextmemaddr = IM.size (mem env)
+
+evalMemStore :: Env -> Either ForthErr Env
+evalMemStore env =
+  case stack env of
+    []     -> Left StackUnderflow
+    [x]    -> Left StackUnderflow
+    x:y:zs -> Right $ env {stack = zs, mem = IM.insert x y (mem env)}
+
+evalMemRetrieve :: Env -> Either ForthErr Env
+evalMemRetrieve env =
+  case stack env of
+    [] -> Left StackUnderflow
+    x:zs ->
+      case IM.lookup x (mem env) of
+        Nothing        -> Left MemoryAccessError
+        Just retrieved -> Right $ env {stack = retrieved : zs}
 
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text

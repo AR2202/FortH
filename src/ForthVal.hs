@@ -7,6 +7,7 @@ module ForthVal
   , Operator(..)
   , ForthErr(..)
   , StackManip(..)
+  , MemoryOp(..)
   , Names(..)
   , Defs(..)
   , Fun(..)
@@ -36,6 +37,7 @@ data ForthVal
   | DoLoop Loop
   | PlusLoop Loop
   | Variable T.Text
+  | Mem MemoryOp
   deriving (Show, Eq)
 
 data Loop =
@@ -75,6 +77,11 @@ data StackManip
   | Rot
   deriving (Show, Eq)
 
+data MemoryOp
+  = Store
+  | Retrieve
+  deriving (Show, Eq)
+
 type Names = Map.Map T.Text Int
 
 type Defs = IntMap ForthVal
@@ -94,6 +101,7 @@ data ForthErr
   | InvalidWord
   | SyntaxError
   | ParseErr
+  | MemoryAccessError
   deriving (Show, Read, Eq)
 
 data Token
