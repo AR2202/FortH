@@ -116,4 +116,5 @@ data Token
   | UNCLOSED
   | DOLOOP [Token]
   | PLUSLOOP [Token]
+  | Var T.Text
   deriving (Show, Eq)

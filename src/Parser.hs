@@ -61,6 +61,12 @@ operatorToken :: Parser Token
 operatorToken =
   Operator <$> (spaces *> oneOf "+-*/=<>" <* (space <|> (lookAhead digit)))
 
+exclamationToken :: Parser Token
+exclamationToken = const (Ide "!") <$> (spaces >> char '!' >> spaces)
+
+atToken :: Parser Token
+atToken = const (Ide "@") <$> (spaces >> char '@' >> spaces)
+
 ifToken :: Parser Token
 ifToken =
   IF <$>
@@ -124,10 +130,17 @@ unclosedDo =
   (string "DO" <* spaces >> many1 allTokenParser >>
    notFollowedBy (string "LOOP"))
 
+varToken :: Parser Token
+varToken =
+  Var . T.pack <$> ((string "VARIABLE" <* spaces) >> (many1 alphaNum <* spaces))
+
 allTokenParser :: Parser Token
 allTokenParser =
-  try colonToken <|> try operatorToken <|> try semicolonToken <|> try wordToken <|>
+  try colonToken <|> try operatorToken <|> try semicolonToken <|> try varToken <|>
+  try wordToken <|>
   try numToken <|>
+  try exclamationToken <|>
+  try atToken <|>
   try (plusLoopToken <* ploopToken) <|>
   try (doLoopToken <* loopToken) <|>
   try (ifelseToken <* thenToken) <|>
@@ -144,9 +157,12 @@ tokenParser =
   try unclosedIF <|>
   try unclosedELSE <|>
   try thenToken <|>
+  try varToken <|>
   try wordToken <|>
   try numToken <|>
   try (doLoopToken <* loopToken) <|>
+  try exclamationToken <|>
+  try atToken <|>
   try unclosedDo
 
 tokensParser :: Parser [Token]
@@ -211,6 +227,7 @@ forthValParser tokens = go tokens [] []
             Left err -> Left err
             Right parseresultsElse ->
               go xs ys (IfElse parseresults parseresultsElse : parsed)
+    go (Var name:xs) ys parsed = go xs ys (Variable name : parsed)
     go _ _ _ = Left SyntaxError
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
