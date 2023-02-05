@@ -45,7 +45,9 @@ wordToken = do
   firstletter <- many1 letter
   nonFirstLetter <- many alphaNum
   whitespace
-  guard (firstletter `notElem` ["THEN", "ELSE", "IF", "DO", "LOOP", "+LOOP"])
+  guard
+    (firstletter `notElem`
+     ["THEN", "ELSE", "IF", "DO", "LOOP", "+LOOP", "CELLS", "ALLOT"])
   return $ Ide $ T.pack (firstDigit ++ firstletter ++ nonFirstLetter)
 
 numToken :: Parser Token
@@ -99,6 +101,12 @@ unclosedELSE =
   (string "ELSE" <* spaces >> many1 allTokenParser >>
    notFollowedBy (string "THEN"))
 
+cellsToken :: Parser Token
+cellsToken = const CELLS <$> (spaces *> string "CELLS" <* spaces)
+
+allotToken :: Parser Token
+allotToken = const ALLOT <$> (spaces *> string "ALLOT" <* spaces)
+
 thenToken :: Parser Token
 thenToken = const THEN <$> (spaces *> string "THEN" <* spaces)
 
@@ -137,6 +145,8 @@ varToken =
 allTokenParser :: Parser Token
 allTokenParser =
   try colonToken <|> try operatorToken <|> try semicolonToken <|> try varToken <|>
+  try allotToken <|>
+  try cellsToken <|>
   try wordToken <|>
   try numToken <|>
   try exclamationToken <|>
@@ -158,6 +168,8 @@ tokenParser =
   try unclosedELSE <|>
   try thenToken <|>
   try varToken <|>
+  try allotToken <|>
+  try cellsToken <|>
   try wordToken <|>
   try numToken <|>
   try (doLoopToken <* loopToken) <|>
@@ -172,7 +184,6 @@ tokensParser = whitespace >> many (tokenParser <* whitespace) <* eof
 ------------------------------------------------------------------------------------------
 -- This is a kind of clumsy hand-written Token parser because Parsec doesn't support this
 -- custom Token Type
--- todo: parsing if else
 forthValParser :: [Token] -> Either ForthErr [ForthVal]
 forthValParser tokens = go tokens [] []
   where
@@ -228,6 +239,8 @@ forthValParser tokens = go tokens [] []
             Right parseresultsElse ->
               go xs ys (IfElse parseresults parseresultsElse : parsed)
     go (Var name:xs) ys parsed = go xs ys (Variable name : parsed)
+    go (ALLOT:xs) ys parsed = go xs ys (Mem Allot : parsed)
+    go (CELLS:xs) ys parsed = go xs ys (Mem Cellsize : parsed)
     go _ _ _ = Left SyntaxError
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word

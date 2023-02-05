@@ -40,6 +40,7 @@ initialNames =
     , "THEN"
     , "!"
     , "@"
+    , "ALLOT"
     ]
     [0 ..]
 
@@ -63,10 +64,11 @@ initialDefs =
     , Manip Drop
     , Mem Store
     , Mem Retrieve
+    , Mem Allot
     ]
 
 initialEnv :: Env
-initialEnv = Env initialNames initialDefs [] IM.empty
+initialEnv = Env initialNames initialDefs [] IM.empty 1
 
 printF :: Env -> IO ()
 printF env =
@@ -96,6 +98,8 @@ eval env (PlusLoop loop)          = evalPlusLoop env loop
 eval env (Variable varname)       = evalVar env varname
 eval env (Mem Store)              = evalMemStore env
 eval env (Mem Retrieve)           = evalMemRetrieve env
+eval env (Mem Allot)              = evalMemAllot env
+eval env (Mem Cellsize)           = evalMemCellsize env
 
 evalNum :: Env -> Int -> Either ForthErr Env
 evalNum env x = Right env {stack = x : stack env}
@@ -245,7 +249,7 @@ evalVar env varname =
     }
   where
     newaddress = Map.size (names env)
-    nextmemaddr = IM.size (mem env)
+    nextmemaddr = IM.size (mem env) * memorycell env
 
 evalMemStore :: Env -> Either ForthErr Env
 evalMemStore env =
@@ -253,6 +257,23 @@ evalMemStore env =
     []     -> Left StackUnderflow
     [x]    -> Left StackUnderflow
     x:y:zs -> Right $ env {stack = zs, mem = IM.insert x y (mem env)}
+    --this function will allocate contiguous memory to the array at the memory location regardless of whether it is already written - this may overwrite existing variables and lead to memory errors
+
+evalMemAllot :: Env -> Either ForthErr Env
+evalMemAllot env =
+  case stack env of
+    [] -> Left StackUnderflow
+    [x] -> Left StackUnderflow
+    x:y:zs -> Right $ env {stack = zs, mem = initializeMem xcells (mem env)}
+      where xcells = L.map ((+ y) . (* memorycell env)) [1 .. x]
+            initializeMem cells dict =
+              L.foldl' (\acc key -> IM.insert key 0 acc) dict cells
+
+evalMemCellsize :: Env -> Either ForthErr Env
+evalMemCellsize env =
+  case stack env of
+    []   -> Left StackUnderflow
+    x:xs -> Right $ env {stack = (x * memorycell env) : xs}
 
 evalMemRetrieve :: Env -> Either ForthErr Env
 evalMemRetrieve env =

@@ -80,6 +80,8 @@ data StackManip
 data MemoryOp
   = Store
   | Retrieve
+  | Allot
+  | Cellsize
   deriving (Show, Eq)
 
 type Names = Map.Map T.Text Int
@@ -92,6 +94,7 @@ data Env =
     , definitions :: Defs
     , stack       :: [Int]
     , mem         :: IntMap Int
+    , memorycell  :: Int
     }
   deriving (Show, Eq)
 
@@ -114,6 +117,8 @@ data Token
   | IFELSE [Token] [Token]
   | THEN
   | UNCLOSED
+  | ALLOT
+  | CELLS
   | DOLOOP [Token]
   | PLUSLOOP [Token]
   | Var T.Text

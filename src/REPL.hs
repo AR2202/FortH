@@ -21,7 +21,10 @@ repl' env = do
     _ ->
       case newenv of
         Left e    -> print e >> repl' env
-        Right new -> printF new >> repl' new
+        Right new -> putStrLn "ok" >> printF new >> repl' new
 
 repl :: IO ()
-repl = repl' initialEnv
+repl = do
+  putStrLn "Welcome to FortHi"
+  putStrLn "type ':q' to exit"
+  repl' initialEnv
