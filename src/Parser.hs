@@ -69,6 +69,9 @@ exclamationToken = const (Ide "!") <$> (spaces >> char '!' >> spaces)
 atToken :: Parser Token
 atToken = const (Ide "@") <$> (spaces >> char '@' >> spaces)
 
+commaToken :: Parser Token
+commaToken = const COMMA <$> (spaces >> char ',' >> spaces)
+
 ifToken :: Parser Token
 ifToken =
   IF <$>
@@ -151,6 +154,7 @@ allTokenParser =
   try numToken <|>
   try exclamationToken <|>
   try atToken <|>
+  try commaToken <|>
   try (plusLoopToken <* ploopToken) <|>
   try (doLoopToken <* loopToken) <|>
   try (ifelseToken <* thenToken) <|>
@@ -175,6 +179,7 @@ tokenParser =
   try (doLoopToken <* loopToken) <|>
   try exclamationToken <|>
   try atToken <|>
+  try commaToken <|>
   try unclosedDo
 
 tokensParser :: Parser [Token]
@@ -241,6 +246,7 @@ forthValParser tokens = go tokens [] []
     go (Var name:xs) ys parsed = go xs ys (Variable name : parsed)
     go (ALLOT:xs) ys parsed = go xs ys (Mem Allot : parsed)
     go (CELLS:xs) ys parsed = go xs ys (Mem Cellsize : parsed)
+    go (COMMA:xs) ys parsed = go xs ys (Mem CommaStore : parsed)
     go _ _ _ = Left SyntaxError
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word

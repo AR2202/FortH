@@ -82,6 +82,7 @@ data MemoryOp
   | Retrieve
   | Allot
   | Cellsize
+  | CommaStore
   deriving (Show, Eq)
 
 type Names = Map.Map T.Text Int
@@ -122,4 +123,5 @@ data Token
   | DOLOOP [Token]
   | PLUSLOOP [Token]
   | Var T.Text
+  | COMMA
   deriving (Show, Eq)

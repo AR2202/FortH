@@ -100,6 +100,7 @@ eval env (Mem Store)              = evalMemStore env
 eval env (Mem Retrieve)           = evalMemRetrieve env
 eval env (Mem Allot)              = evalMemAllot env
 eval env (Mem Cellsize)           = evalMemCellsize env
+eval env (Mem CommaStore)         = evalMemComma env
 
 evalNum :: Env -> Int -> Either ForthErr Env
 evalNum env x = Right env {stack = x : stack env}
@@ -257,6 +258,15 @@ evalMemStore env =
     []     -> Left StackUnderflow
     [x]    -> Left StackUnderflow
     x:y:zs -> Right $ env {stack = zs, mem = IM.insert x y (mem env)}
+
+evalMemComma :: Env -> Either ForthErr Env
+evalMemComma env =
+  case stack env of
+    [] -> Left StackUnderflow
+    [x] -> Left StackUnderflow
+    x:y:zs ->
+      Right $
+      env {stack = (y + memorycell env) : zs, mem = IM.insert y x (mem env)}
     --this function will allocate contiguous memory to the array at the memory location regardless of whether it is already written - this may overwrite existing variables and lead to memory errors
 
 evalMemAllot :: Env -> Either ForthErr Env
