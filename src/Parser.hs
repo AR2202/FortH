@@ -10,6 +10,7 @@ module Parser
   , tokensParser
   , parseFromText
   , tokenizeFromText
+  , forthValParser'
   ) where
 
 import           Data.IntMap                              as IM
@@ -190,64 +191,75 @@ tokensParser = whitespace >> many (tokenParser <* whitespace) <* eof
 -- This is a kind of clumsy hand-written Token parser because Parsec doesn't support this
 -- custom Token Type
 forthValParser :: [Token] -> Either ForthErr [ForthVal]
-forthValParser tokens = go tokens [] []
+forthValParser tokens = forthValParser' tokens [] []
+
+forthValParser' ::
+     [Token] -> [ForthVal] -> [ForthVal] -> Either ForthErr [ForthVal]
+forthValParser' [] [] parsed = Right $ L.reverse parsed
+forthValParser' [] xs _ = Left SyntaxError
+forthValParser' (UNCLOSED:xs) _ _ = Left SyntaxError
+forthValParser' (Num x:Num y:DOLOOP dotokens:xs) ys parsed =
+  case forthValParser dotokens of
+    Left err -> Left err
+    Right parseresults ->
+      forthValParser'
+        xs
+        ys
+        (DoLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
+         parsed)
+forthValParser' (Num x:Num y:PLUSLOOP dotokens:xs) ys parsed =
+  case forthValParser dotokens of
+    Left err -> Left err
+    Right parseresults ->
+      forthValParser'
+        xs
+        ys
+        (PlusLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
+         parsed)
+forthValParser' (Ide text:xs) [] parsed =
+  forthValParser' xs [] (Word text : parsed)
+forthValParser' (Ide text:xs) ys parsed =
+  forthValParser' xs (Word text : ys) parsed
+forthValParser' (Num text:xs) [] parsed =
+  forthValParser' xs [] (Number (read (T.unpack text)) : parsed)
+forthValParser' (Num text:xs) ys parsed =
+  forthValParser' xs (Number (read (T.unpack text)) : ys) parsed
+forthValParser' (Colon:Ide t:xs) [] parsed = forthValParser' xs [Word t] parsed
+forthValParser' (Colon:Operator c:xs) [] parsed =
+  forthValParser' xs [Word (T.singleton c)] parsed
+forthValParser' (Colon:xs) _ _ = Left SyntaxError
+forthValParser' (Operator c:xs) [] parsed =
+  forthValParser' xs [] (Word (T.singleton c) : parsed)
+forthValParser' (Operator c:xs) ys parsed =
+  forthValParser' xs (Word (T.singleton c) : ys) parsed
+forthValParser' (Semicolon:xs) [] parsed = Left SyntaxError
+forthValParser' (Semicolon:xs) ys parsed =
+  forthValParser' xs [] (newdef ys : parsed)
   where
-    go [] [] parsed = Right $ L.reverse parsed
-    go [] xs _ = Left SyntaxError
-    go (UNCLOSED:xs) _ _ = Left SyntaxError
-    go (Num x:Num y:DOLOOP dotokens:xs) ys parsed =
-      case forthValParser dotokens of
+    newdef list =
+      Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
+forthValParser' (THEN:xs) ys parsed = forthValParser' xs ys parsed
+forthValParser' (IF iftokens:xs) ys parsed =
+  case forthValParser iftokens of
+    Left err           -> Left err
+    Right parseresults -> forthValParser' xs ys (If parseresults : parsed)
+forthValParser' (IFELSE iftokens elsetokens:xs) ys parsed =
+  case forthValParser iftokens of
+    Left err -> Left err
+    Right parseresults ->
+      case forthValParser elsetokens of
         Left err -> Left err
-        Right parseresults ->
-          go
-            xs
-            ys
-            (DoLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
-             parsed)
-    go (Num x:Num y:PLUSLOOP dotokens:xs) ys parsed =
-      case forthValParser dotokens of
-        Left err -> Left err
-        Right parseresults ->
-          go
-            xs
-            ys
-            (PlusLoop
-               (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
-             parsed)
-    go (Ide text:xs) [] parsed = go xs [] (Word text : parsed)
-    go (Ide text:xs) ys parsed = go xs (Word text : ys) parsed
-    go (Num text:xs) [] parsed =
-      go xs [] (Number (read (T.unpack text)) : parsed)
-    go (Num text:xs) ys parsed =
-      go xs (Number (read (T.unpack text)) : ys) parsed
-    go (Colon:Ide t:xs) [] parsed = go xs [Word t] parsed
-    go (Colon:Operator c:xs) [] parsed = go xs [Word (T.singleton c)] parsed
-    go (Colon:xs) _ _ = Left SyntaxError
-    go (Operator c:xs) [] parsed = go xs [] (Word (T.singleton c) : parsed)
-    go (Operator c:xs) ys parsed = go xs (Word (T.singleton c) : ys) parsed
-    go (Semicolon:xs) [] parsed = Left SyntaxError
-    go (Semicolon:xs) ys parsed = go xs [] (newdef ys : parsed)
-      where
-        newdef list =
-          Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
-    go (THEN:xs) ys parsed = go xs ys parsed
-    go (IF iftokens:xs) ys parsed =
-      case forthValParser iftokens of
-        Left err           -> Left err
-        Right parseresults -> go xs ys (If parseresults : parsed)
-    go (IFELSE iftokens elsetokens:xs) ys parsed =
-      case forthValParser iftokens of
-        Left err -> Left err
-        Right parseresults ->
-          case forthValParser elsetokens of
-            Left err -> Left err
-            Right parseresultsElse ->
-              go xs ys (IfElse parseresults parseresultsElse : parsed)
-    go (Var name:xs) ys parsed = go xs ys (Variable name : parsed)
-    go (ALLOT:xs) ys parsed = go xs ys (Mem Allot : parsed)
-    go (CELLS:xs) ys parsed = go xs ys (Mem Cellsize : parsed)
-    go (COMMA:xs) ys parsed = go xs ys (Mem CommaStore : parsed)
-    go _ _ _ = Left SyntaxError
+        Right parseresultsElse ->
+          forthValParser' xs ys (IfElse parseresults parseresultsElse : parsed)
+forthValParser' (Var name:xs) ys parsed =
+  forthValParser' xs ys (Variable name : parsed)
+forthValParser' (ALLOT:xs) ys parsed =
+  forthValParser' xs ys (Mem Allot : parsed)
+forthValParser' (CELLS:xs) ys parsed =
+  forthValParser' xs ys (Mem Cellsize : parsed)
+forthValParser' (COMMA:xs) ys parsed =
+  forthValParser' xs ys (Mem CommaStore : parsed)
+forthValParser' _ _ _ = Left SyntaxError
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text

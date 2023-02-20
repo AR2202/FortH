@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1d2cc9eaf74311d430d049cf85993f17625276b3c85f27ec9c9347924121dae6
+-- hash: 59d4d8af90c710fa913351636ee0a40b3a9f4f36da3569fcfa7f82cb93bdcbec
 
 name:           FortH
 version:        0.1.0.0
@@ -29,7 +29,6 @@ library
   exposed-modules:
       Eval
       ForthVal
-      Lib
       Parser
       REPL
   other-modules:
