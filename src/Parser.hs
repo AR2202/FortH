@@ -11,6 +11,10 @@ module Parser
   , parseFromText
   , tokenizeFromText
   , forthValParser'
+  , doLoopParser
+  , plusLoopParser
+  , ifParser
+  , ifelseParser
   ) where
 
 import           Data.IntMap                              as IM
@@ -199,23 +203,9 @@ forthValParser' [] [] parsed = Right $ L.reverse parsed
 forthValParser' [] xs _ = Left SyntaxError
 forthValParser' (UNCLOSED:xs) _ _ = Left SyntaxError
 forthValParser' (Num x:Num y:DOLOOP dotokens:xs) ys parsed =
-  case forthValParser dotokens of
-    Left err -> Left err
-    Right parseresults ->
-      forthValParser'
-        xs
-        ys
-        (DoLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
-         parsed)
+  doLoopParser x y dotokens xs ys parsed
 forthValParser' (Num x:Num y:PLUSLOOP dotokens:xs) ys parsed =
-  case forthValParser dotokens of
-    Left err -> Left err
-    Right parseresults ->
-      forthValParser'
-        xs
-        ys
-        (PlusLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
-         parsed)
+  plusLoopParser x y dotokens xs ys parsed
 forthValParser' (Ide text:xs) [] parsed =
   forthValParser' xs [] (Word text : parsed)
 forthValParser' (Ide text:xs) ys parsed =
@@ -233,24 +223,11 @@ forthValParser' (Operator c:xs) [] parsed =
 forthValParser' (Operator c:xs) ys parsed =
   forthValParser' xs (Word (T.singleton c) : ys) parsed
 forthValParser' (Semicolon:xs) [] parsed = Left SyntaxError
-forthValParser' (Semicolon:xs) ys parsed =
-  forthValParser' xs [] (newdef ys : parsed)
-  where
-    newdef list =
-      Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
+forthValParser' (Semicolon:xs) ys parsed = semicolonParser xs ys parsed
 forthValParser' (THEN:xs) ys parsed = forthValParser' xs ys parsed
-forthValParser' (IF iftokens:xs) ys parsed =
-  case forthValParser iftokens of
-    Left err           -> Left err
-    Right parseresults -> forthValParser' xs ys (If parseresults : parsed)
+forthValParser' (IF iftokens:xs) ys parsed = ifParser iftokens xs ys parsed
 forthValParser' (IFELSE iftokens elsetokens:xs) ys parsed =
-  case forthValParser iftokens of
-    Left err -> Left err
-    Right parseresults ->
-      case forthValParser elsetokens of
-        Left err -> Left err
-        Right parseresultsElse ->
-          forthValParser' xs ys (IfElse parseresults parseresultsElse : parsed)
+  ifelseParser iftokens elsetokens xs ys parsed
 forthValParser' (Var name:xs) ys parsed =
   forthValParser' xs ys (Variable name : parsed)
 forthValParser' (ALLOT:xs) ys parsed =
@@ -260,6 +237,74 @@ forthValParser' (CELLS:xs) ys parsed =
 forthValParser' (COMMA:xs) ys parsed =
   forthValParser' xs ys (Mem CommaStore : parsed)
 forthValParser' _ _ _ = Left SyntaxError
+
+doLoopParser ::
+     T.Text
+  -> T.Text
+  -> [Token]
+  -> [Token]
+  -> [ForthVal]
+  -> [ForthVal]
+  -> Either ForthErr [ForthVal]
+doLoopParser x y dotokens xs ys parsed =
+  case forthValParser dotokens of
+    Left err -> Left err
+    Right parseresults ->
+      forthValParser'
+        xs
+        ys
+        (DoLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
+         parsed)
+
+plusLoopParser ::
+     T.Text
+  -> T.Text
+  -> [Token]
+  -> [Token]
+  -> [ForthVal]
+  -> [ForthVal]
+  -> Either ForthErr [ForthVal]
+plusLoopParser x y dotokens xs ys parsed =
+  case forthValParser dotokens of
+    Left err -> Left err
+    Right parseresults ->
+      forthValParser'
+        xs
+        ys
+        (PlusLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults) :
+         parsed)
+
+semicolonParser xs ys parsed = forthValParser' xs [] (newdef ys : parsed)
+  where
+    newdef list =
+      Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
+
+ifParser ::
+     [Token]
+  -> [Token]
+  -> [ForthVal]
+  -> [ForthVal]
+  -> Either ForthErr [ForthVal]
+ifParser iftokens xs ys parsed =
+  case forthValParser iftokens of
+    Left err           -> Left err
+    Right parseresults -> forthValParser' xs ys (If parseresults : parsed)
+
+ifelseParser ::
+     [Token]
+  -> [Token]
+  -> [Token]
+  -> [ForthVal]
+  -> [ForthVal]
+  -> Either ForthErr [ForthVal]
+ifelseParser iftokens elsetokens xs ys parsed =
+  case forthValParser iftokens of
+    Left err -> Left err
+    Right parseresults ->
+      case forthValParser elsetokens of
+        Left err -> Left err
+        Right parseresultsElse ->
+          forthValParser' xs ys (IfElse parseresults parseresultsElse : parsed)
 
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text
