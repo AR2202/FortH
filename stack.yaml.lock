@@ -3,11 +3,32 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: hfmt-0.3.0.0@sha256:25d0f75028ae950a93b5bb3b1e45cf43506a62dff984dd3486a4ab0cf844338c,3576
+    pantry-tree:
+      sha256: afa2c246c4a33e8d47feb45ff4d3f89b2d12cee907e8de5a165a54fe4598d9aa
+      size: 1386
+  original:
+    hackage: hfmt-0.3.0.0
+- completed:
+    hackage: stylish-haskell-0.14.4.0@sha256:5cc3da660907df906a72cc32433f736c0158b5f3eca3ba89b12f6b892fff2f7a,4360
+    pantry-tree:
+      sha256: 220b11a76796fd7ed4ea11e4a70baa19f9cfe853de770484a24105f3500168a4
+      size: 3891
+  original:
+    hackage: stylish-haskell-0.14.4.0
+- completed:
+    hackage: hindent-6.0.0@sha256:39de37e98d7e157ded253bb4230be98eaf48142b09a19c811372339dd113f0f1,5717
+    pantry-tree:
+      sha256: dfe0b89c2ebc62d4761628d406a97077af70533320de8fb082df443ec25be8c5
+      size: 3077
+  original:
+    hackage: hindent-6.0.0
 snapshots:
 - completed:
+    sha256: 63539429076b7ebbab6daa7656cfb079393bf644971156dc349d7c0453694ac2
     size: 586296
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
-    sha256: 63539429076b7ebbab6daa7656cfb079393bf644971156dc349d7c0453694ac2
   original:
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml

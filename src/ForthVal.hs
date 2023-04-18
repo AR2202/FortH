@@ -1,28 +1,29 @@
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module ForthVal
-  ( Env(..)
-  , ForthVal(..)
-  , Operator(..)
-  , ForthErr(..)
-  , StackManip(..)
-  , MemoryOp(..)
-  , Names(..)
-  , Defs(..)
-  , Fun(..)
-  , Token(..)
-  , Loop(..)
-  ) where
+  ( Env (..),
+    ForthVal (..),
+    Operator (..),
+    ForthErr (..),
+    StackManip (..),
+    MemoryOp (..),
+    Names (..),
+    Defs (..),
+    Fun (..),
+    Token (..),
+    Loop (..),
+  )
+where
 
-import           Data.IntMap                       as IM
-import qualified Data.Map                          as Map
-import           Data.Text                         as T
-import qualified Data.Vector                       as V
-import           Generic.Random                    (genericArbitrary', uniform)
-import           GHC.Generics
-import           Test.QuickCheck                   (Arbitrary (..))
-import           Test.QuickCheck.Arbitrary.Generic
+import Data.IntMap as IM
+import qualified Data.Map as Map
+import Data.Text as T
+import qualified Data.Vector as V
+import GHC.Generics
+import Generic.Random (genericArbitrary', uniform)
+import Test.QuickCheck (Arbitrary (..))
+import Test.QuickCheck.Arbitrary.Generic
 
 data ForthVal
   = Number Int
@@ -40,19 +41,17 @@ data ForthVal
   | Mem MemoryOp
   deriving (Show, Eq)
 
-data Loop =
-  Loop
-    { start    :: Int
-    , stop     :: Int
-    , loopbody :: [ForthVal]
-    }
+data Loop = Loop
+  { start :: Int,
+    stop :: Int,
+    loopbody :: [ForthVal]
+  }
   deriving (Show, Eq)
 
-data Fun =
-  Fun
-    { name :: T.Text
-    , body :: [ForthVal]
-    }
+data Fun = Fun
+  { name :: T.Text,
+    body :: [ForthVal]
+  }
   deriving (Show, Eq)
 
 data Operator
@@ -63,6 +62,8 @@ data Operator
   | Equal
   | Less
   | Greater
+  | Or
+  | And
   deriving (Show, Eq, Generic)
 
 instance Arbitrary Operator where
@@ -75,6 +76,7 @@ data StackManip
   | Swap
   | Over
   | Rot
+  | Invert
   deriving (Show, Eq)
 
 data MemoryOp
@@ -89,14 +91,13 @@ type Names = Map.Map T.Text Int
 
 type Defs = IntMap ForthVal
 
-data Env =
-  Env
-    { names       :: Names
-    , definitions :: Defs
-    , stack       :: [Int]
-    , mem         :: IntMap Int
-    , memorycell  :: Int
-    }
+data Env = Env
+  { names :: Names,
+    definitions :: Defs,
+    stack :: [Int],
+    mem :: IntMap Int,
+    memorycell :: Int
+  }
   deriving (Show, Eq)
 
 data ForthErr
@@ -112,6 +113,7 @@ data Token
   = Ide T.Text
   | Num T.Text
   | Operator Char
+  | BoolOperator T.Text
   | Colon
   | Semicolon
   | IF [Token]
