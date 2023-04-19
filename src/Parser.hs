@@ -66,7 +66,10 @@ semicolonToken = const Semicolon <$> (spaces >> char ';' >> spaces)
 
 operatorToken :: Parser Token
 operatorToken =
-  Operator <$> (spaces *> oneOf "+-*/=<>" <* (space <|> (lookAhead digit)))
+  Operator <$> (spaces *> (oneOf "+-*/=<>" <* notFollowedBy (noneOf " \t\r\n"))) <* (space <|> digit <|> endOfLine <|> newline <|> (eof *> pure ' '))
+
+-- operatorToken =
+--  Operator <$> (spaces *> oneOf "+-*/=<>" <* (space <|> (lookAhead digit) <|> endOfLine <|> newline ))
 
 operatorORToken :: Parser Token
 operatorORToken =

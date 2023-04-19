@@ -64,6 +64,7 @@ data Operator
   | Greater
   | Or
   | And
+  | Xor
   deriving (Show, Eq, Generic)
 
 instance Arbitrary Operator where
