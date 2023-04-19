@@ -44,7 +44,8 @@ initialNames =
         "@",
         "ALLOT",
         "OR",
-        "AND"
+        "AND",
+        "XOR"
       ]
       [0 ..]
 
@@ -71,7 +72,8 @@ initialDefs =
         Mem Retrieve,
         Mem Allot,
         Arith Or,
-        Arith And
+        Arith And,
+        Arith Xor
       ]
 
 initialEnv :: Env
@@ -142,6 +144,7 @@ operation Greater =
       else 0
 operation Or = orOp
 operation And = andOp
+operation Xor = xorOp
 
 andOp :: Int -> Int -> Int
 andOp 0 _ = 0
@@ -151,6 +154,12 @@ andOp x y = 1
 orOp :: Int -> Int -> Int
 orOp 0 0 = 0
 orOp _ _ = 1
+
+xorOp :: Int -> Int -> Int
+xorOp 0 0 = 0
+xorOp 0 _ = 1
+xorOp _ 0 = 1
+xorOp _ _ = 0
 
 evalDup :: Env -> Either ForthErr Env
 evalDup env =

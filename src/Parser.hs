@@ -68,12 +68,9 @@ operatorToken :: Parser Token
 operatorToken =
   Operator <$> (spaces *> (oneOf "+-*/=<>" <* notFollowedBy (noneOf " \t\r\n"))) <* (space <|> digit <|> endOfLine <|> newline <|> (eof *> pure ' '))
 
--- operatorToken =
---  Operator <$> (spaces *> oneOf "+-*/=<>" <* (space <|> (lookAhead digit) <|> endOfLine <|> newline ))
-
 operatorORToken :: Parser Token
 operatorORToken =
-  BoolOperator . T.pack <$> (spaces *> string "OR" <* spaces)
+  BoolOperator . T.pack <$> (spaces *> (string "OR" <|> string "XOR") <* spaces)
 
 operatorAndToken :: Parser Token
 operatorAndToken =
