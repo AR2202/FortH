@@ -90,7 +90,7 @@ ifToken =
   IF
     <$> between
       (string "IF" <* spaces)
-      (lookAhead (try (string "THEN")))
+      (lookAhead (try (spaces*>string "THEN")))
       (many allTokenParser)
 
 ifelseToken :: Parser Token
@@ -98,11 +98,11 @@ ifelseToken =
   IFELSE
     <$> between
       (string "IF" <* spaces)
-      (lookAhead (try (string "ELSE")))
+      (lookAhead (try (spaces*>string "ELSE")))
       (many allTokenParser)
     <*> between
-      (string "ELSE" <* spaces)
-      (lookAhead (try (string "THEN")))
+      (spaces*>string "ELSE" <* spaces)
+      (lookAhead (try (spaces*>string "THEN")))
       (many allTokenParser)
 
 unclosedIF :: Parser Token
@@ -174,8 +174,8 @@ allTokenParser =
     <|> try varToken
     <|> try allotToken
     <|> try cellsToken
-    <|> try wordToken
     <|> try numToken
+    <|> try wordToken
     <|> try exclamationToken
     <|> try atToken
     <|> try commaToken
