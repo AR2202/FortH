@@ -1,4 +1,4 @@
-a{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Eval
   ( initialDefs,
@@ -45,7 +45,9 @@ initialNames =
         "ALLOT",
         "OR",
         "AND",
-        "XOR"
+        "XOR",
+        "INVERT",
+        "MOD"
       ]
       [0 ..]
 
@@ -73,7 +75,9 @@ initialDefs =
         Mem Allot,
         Arith Or,
         Arith And,
-        Arith Xor
+        Arith Xor,
+        Arith Not,
+        Arith Mod
       ]
 
 initialEnv :: Env
@@ -90,6 +94,7 @@ printStack env = mapM_ print $ L.reverse $ stack env
 
 eval :: Env -> ForthVal -> Either ForthErr Env
 eval env (Number x) = evalNum env x
+eval env (Arith Not) = evalNot env
 eval env (Arith op) = evalOp env op
 eval env (Manip Dup) = evalDup env
 eval env (Manip Drop) = evalDrop env
@@ -114,6 +119,13 @@ eval env (Mem CommaStore) = evalMemComma env
 
 evalNum :: Env -> Int -> Either ForthErr Env
 evalNum env x = Right env {stack = x : stack env}
+
+evalNot :: Env -> Either ForthErr Env 
+evalNot env =
+  case stack env of
+    [] -> Left StackUnderflow
+    0:xs -> Right $ env { stack = 1:xs}
+    x:xs -> Right $ env {stack = 0:xs}
 
 evalOp :: Env -> Operator -> Either ForthErr Env
 evalOp env op =
@@ -145,6 +157,8 @@ operation Greater =
 operation Or = orOp
 operation And = andOp
 operation Xor = xorOp
+operation Mod = mod
+  
 
 andOp :: Int -> Int -> Int
 andOp 0 _ = 0

@@ -65,6 +65,8 @@ data Operator
   | Or
   | And
   | Xor
+  | Not
+  | Mod
   deriving (Show, Eq, Generic)
 
 instance Arbitrary Operator where

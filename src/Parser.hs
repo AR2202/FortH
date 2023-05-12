@@ -76,6 +76,10 @@ operatorAndToken :: Parser Token
 operatorAndToken =
   BoolOperator . T.pack <$> (spaces *> string "AND" <* spaces)
 
+operatorNotToken :: Parser Token
+operatorNotToken =
+  BoolOperator . T.pack <$> (spaces *> string "INVERT" <* spaces)
+
 exclamationToken :: Parser Token
 exclamationToken = const (Ide "!") <$> (spaces >> char '!' >> spaces)
 
