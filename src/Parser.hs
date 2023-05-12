@@ -56,7 +56,7 @@ wordToken = do
   return $ Ide $ T.pack (firstDigit ++ firstletter ++ nonFirstLetter)
 
 numToken :: Parser Token
-numToken = Num . T.pack <$> (spaces *> many1 digit <* spaces)
+numToken = Num . T.pack <$> (spaces *> many1 digit<|> ((++) <$>string "-" <*> many1 digit) <* spaces)
 
 colonToken :: Parser Token
 colonToken = const Colon <$> (spaces >> char ':' >> spaces)
