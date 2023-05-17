@@ -37,6 +37,7 @@ data ForthVal
   | IfElse [ForthVal] [ForthVal]
   | DoLoop Loop
   | PlusLoop Loop
+  | UntilLoop [ForthVal]
   | Variable T.Text
   | Mem MemoryOp
   deriving (Show, Eq)
@@ -47,6 +48,8 @@ data Loop = Loop
     loopbody :: [ForthVal]
   }
   deriving (Show, Eq)
+
+
 
 data Fun = Fun
   { name :: T.Text,
@@ -127,6 +130,7 @@ data Token
   | CELLS
   | DOLOOP [Token]
   | PLUSLOOP [Token]
+  | UNTILLOOP [Token]
   | Var T.Text
   | COMMA
   deriving (Show, Eq)

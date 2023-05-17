@@ -51,7 +51,7 @@ wordToken = do
   whitespace
   guard
     ( firstletter
-        `notElem` ["THEN", "ELSE", "IF", "DO", "LOOP", "+LOOP", "CELLS", "ALLOT", "OR", "AND"]
+        `notElem` ["THEN", "ELSE", "IF", "DO", "LOOP", "+LOOP", "BEGIN", "UNTIL","CELLS", "ALLOT", "OR", "AND"]
     )
   return $ Ide $ T.pack (firstDigit ++ firstletter ++ nonFirstLetter)
 
@@ -140,12 +140,23 @@ loopToken = const THEN <$> (spaces *> string "LOOP" <* spaces)
 ploopToken :: Parser Token
 ploopToken = const THEN <$> (spaces *> string "+LOOP" <* spaces)
 
+untilToken :: Parser Token
+untilToken = const THEN <$> (spaces *> string "UNTIL" <* spaces)
+
 doLoopToken :: Parser Token
 doLoopToken =
   DOLOOP
     <$> between
       (string "DO" <* spaces)
       (lookAhead (string "LOOP"))
+      (many allTokenParser)
+
+untilLoopToken :: Parser Token
+untilLoopToken =
+  UNTILLOOP
+    <$> between
+      (string "BEGIN" <* spaces)
+      (lookAhead (string "UNTIL"))
       (many allTokenParser)
 
 plusLoopToken :: Parser Token
@@ -179,12 +190,14 @@ allTokenParser =
     <|> try allotToken
     <|> try cellsToken
     <|> try numToken
+    <|> try (untilLoopToken <* untilToken)
     <|> try wordToken
     <|> try exclamationToken
     <|> try atToken
     <|> try commaToken
     <|> try (plusLoopToken <* ploopToken)
     <|> try (doLoopToken <* loopToken)
+
     <|> try (ifelseToken <* thenToken)
     <|> try (ifToken <* thenToken)
     <|> try unclosedDo
@@ -206,9 +219,11 @@ tokenParser =
     <|> try varToken
     <|> try allotToken
     <|> try cellsToken
+    <|> try (untilLoopToken <* untilToken)
     <|> try wordToken
     <|> try numToken
     <|> try (doLoopToken <* loopToken)
+
     <|> try exclamationToken
     <|> try atToken
     <|> try commaToken
@@ -233,6 +248,8 @@ forthValParser' (Num x : Num y : DOLOOP dotokens : xs) ys parsed =
   doLoopParser x y dotokens xs ys parsed
 forthValParser' (Num x : Num y : PLUSLOOP dotokens : xs) ys parsed =
   plusLoopParser x y dotokens xs ys parsed
+forthValParser' (UNTILLOOP dotokens : xs) ys parsed =
+  untilLoopParser dotokens xs ys parsed
 forthValParser' (Ide text : xs) [] parsed =
   forthValParser' xs [] (Word text : parsed)
 forthValParser' (Ide text : xs) ys parsed =
@@ -285,6 +302,24 @@ doLoopParser x y dotokens xs ys parsed =
         xs
         ys
         ( DoLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults)
+            : parsed
+        )
+
+untilLoopParser ::
+
+  [Token] ->
+  [Token] ->
+  [ForthVal] ->
+  [ForthVal] ->
+  Either ForthErr [ForthVal]
+untilLoopParser  dotokens xs ys parsed =
+  case forthValParser dotokens of
+    Left err -> Left err
+    Right parseresults ->
+      forthValParser'
+        xs
+        ys
+        ( UntilLoop  parseresults
             : parsed
         )
 

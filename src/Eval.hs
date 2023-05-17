@@ -110,6 +110,7 @@ eval env (If forthvals) = evalIf env forthvals
 eval env (IfElse ifvals elsevals) = evalIfElse env ifvals elsevals
 eval env (DoLoop loop) = evalDoLoop env loop
 eval env (PlusLoop loop) = evalPlusLoop env loop
+eval env (UntilLoop loop) = evalUntilLoop env loop
 eval env (Variable varname) = evalVar env varname
 eval env (Mem Store) = evalMemStore env
 eval env (Mem Retrieve) = evalMemRetrieve env
@@ -289,6 +290,13 @@ evalPlusLoop env loop =
           case newenv of
             Left _ -> 0
             Right newenv' -> L.head $ stack newenv'
+
+evalUntilLoop env loop = case eval env (Forthvals loop) of
+  Left err -> Left err
+  Right newenv -> case stack newenv of
+    [] -> Left StackUnderflow
+    (0:xs) -> evalUntilLoop (newenv{stack = xs}) loop
+    (x:xs) -> Right newenv {stack = xs}
 
 evalVar :: Env -> T.Text -> Either ForthErr Env
 evalVar env varname =
