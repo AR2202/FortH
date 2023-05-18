@@ -81,7 +81,7 @@ initialDefs =
       ]
 
 initialEnv :: Env
-initialEnv = Env initialNames initialDefs [] IM.empty 1
+initialEnv = Env initialNames initialDefs [] IM.empty 1 []
 
 printF :: Env -> IO ()
 printF env =
@@ -117,6 +117,7 @@ eval env (Mem Retrieve) = evalMemRetrieve env
 eval env (Mem Allot) = evalMemAllot env
 eval env (Mem Cellsize) = evalMemCellsize env
 eval env (Mem CommaStore) = evalMemComma env
+eval env PrintCommand = evalPrint env
 
 evalNum :: Env -> Int -> Either ForthErr Env
 evalNum env x = Right env {stack = x : stack env}
@@ -216,6 +217,12 @@ evalInvert env =
     [] -> Left StackUnderflow
     0 : xs -> Right $ env {stack = 1 : xs}
     x : xs -> Right $ env {stack = 0 : xs}
+
+evalPrint :: Env -> Either ForthErr Env
+evalPrint env =
+  case stack env of
+    [] -> Left StackUnderflow
+    (x : xs) -> Right $ env {stack = xs, printStr = show x : printStr env}
 
 evalWord :: Env -> T.Text -> Either ForthErr Env
 evalWord env name =

@@ -12,7 +12,8 @@ import           Parser
 
 repl' :: Env -> IO ()
 repl' env = do
-  putStr "FortHi> "
+  putStrLn "FortHi> "
+    
   input <- getLine
   let newenv = evalInputRepl (T.pack input) env
   case input of
@@ -21,10 +22,11 @@ repl' env = do
     _ ->
       case newenv of
         Left e    -> print e >> repl' env
-        Right new -> putStrLn "ok" >> printF new >> repl' new
+        Right new ->  putStrLn "ok" >> mapM_ putStrLn ((Prelude.reverse . printStr) new) >> printF new >>repl' new {printStr = []}
 
 repl :: IO ()
 repl = do
   putStrLn "Welcome to FortHi"
   putStrLn "type ':q' to exit"
+  
   repl' initialEnv

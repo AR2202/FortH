@@ -89,6 +89,9 @@ atToken = const (Ide "@") <$> (spaces >> char '@' >> spaces)
 commaToken :: Parser Token
 commaToken = const COMMA <$> (spaces >> char ',' >> spaces)
 
+dotToken :: Parser Token
+dotToken = const PRINT <$> (spaces >> char '.' >> spaces)
+
 ifToken :: Parser Token
 ifToken =
   IF
@@ -186,6 +189,7 @@ allTokenParser =
     <|> try operatorORToken
     <|> try operatorAndToken
     <|> try semicolonToken
+    <|> try dotToken
     <|> try varToken
     <|> try allotToken
     <|> try cellsToken
@@ -207,6 +211,7 @@ tokenParser :: Parser Token
 tokenParser =
   try colonToken
     <|> try semicolonToken
+    <|> try dotToken
     <|> try (plusLoopToken <* ploopToken)
     <|> try operatorToken
     <|> try operatorORToken
@@ -284,6 +289,8 @@ forthValParser' (CELLS : xs) ys parsed =
   forthValParser' xs ys (Mem Cellsize : parsed)
 forthValParser' (COMMA : xs) ys parsed =
   forthValParser' xs ys (Mem CommaStore : parsed)
+forthValParser' (PRINT: xs) ys parsed =
+  forthValParser' xs ys (PrintCommand : parsed)
 forthValParser' _ _ _ = Left SyntaxError
 
 doLoopParser ::

@@ -40,6 +40,7 @@ data ForthVal
   | UntilLoop [ForthVal]
   | Variable T.Text
   | Mem MemoryOp
+  | PrintCommand
   deriving (Show, Eq)
 
 data Loop = Loop
@@ -102,7 +103,8 @@ data Env = Env
     definitions :: Defs,
     stack :: [Int],
     mem :: IntMap Int,
-    memorycell :: Int
+    memorycell :: Int,
+    printStr :: [String]
   }
   deriving (Show, Eq)
 
@@ -133,4 +135,5 @@ data Token
   | UNTILLOOP [Token]
   | Var T.Text
   | COMMA
+  | PRINT
   deriving (Show, Eq)
