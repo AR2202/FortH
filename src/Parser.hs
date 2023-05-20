@@ -149,10 +149,11 @@ untilToken = const THEN <$> (spaces *> string "UNTIL" <* spaces)
 doLoopToken :: Parser Token
 doLoopToken =
   DOLOOP
-    <$> between
+  <$> between
       (string "DO" <* spaces)
       (lookAhead (string "LOOP"))
       (many allTokenParser)
+    
 
 untilLoopToken :: Parser Token
 untilLoopToken =
@@ -161,6 +162,8 @@ untilLoopToken =
       (string "BEGIN" <* spaces)
       (lookAhead (string "UNTIL"))
       (many allTokenParser)
+
+
 
 plusLoopToken :: Parser Token
 plusLoopToken =
@@ -177,6 +180,14 @@ unclosedDo =
             >> many1 allTokenParser
             >> notFollowedBy (string "LOOP")
         )
+
+stringLitToken :: Parser Token
+stringLitToken =
+ STRING . T.pack
+    <$> between
+      (char '"')
+      (char '"')
+      (many (noneOf ['"']))
 
 varToken :: Parser Token
 varToken =
@@ -195,6 +206,7 @@ allTokenParser =
     <|> try cellsToken
     <|> try numToken
     <|> try (untilLoopToken <* untilToken)
+    <|> try stringLitToken
     <|> try wordToken
     <|> try exclamationToken
     <|> try atToken
@@ -225,6 +237,7 @@ tokenParser =
     <|> try allotToken
     <|> try cellsToken
     <|> try (untilLoopToken <* untilToken)
+    <|> try stringLitToken
     <|> try wordToken
     <|> try numToken
     <|> try (doLoopToken <* loopToken)
@@ -289,6 +302,8 @@ forthValParser' (CELLS : xs) ys parsed =
   forthValParser' xs ys (Mem Cellsize : parsed)
 forthValParser' (COMMA : xs) ys parsed =
   forthValParser' xs ys (Mem CommaStore : parsed)
+forthValParser' (PRINT: STRING t : xs) ys parsed =
+  forthValParser' xs ys (PrintStringLiteral t : parsed)
 forthValParser' (PRINT: xs) ys parsed =
   forthValParser' xs ys (PrintCommand : parsed)
 forthValParser' _ _ _ = Left SyntaxError

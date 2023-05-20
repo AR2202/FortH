@@ -118,6 +118,7 @@ eval env (Mem Allot) = evalMemAllot env
 eval env (Mem Cellsize) = evalMemCellsize env
 eval env (Mem CommaStore) = evalMemComma env
 eval env PrintCommand = evalPrint env
+eval env (PrintStringLiteral t) = evalPrintString env t
 
 evalNum :: Env -> Int -> Either ForthErr Env
 evalNum env x = Right env {stack = x : stack env}
@@ -223,6 +224,9 @@ evalPrint env =
   case stack env of
     [] -> Left StackUnderflow
     (x : xs) -> Right $ env {stack = xs, printStr = show x : printStr env}
+
+evalPrintString :: Env -> T.Text -> Either ForthErr Env
+evalPrintString env t = Right $ env { printStr = T.unpack t : printStr env}
 
 evalWord :: Env -> T.Text -> Either ForthErr Env
 evalWord env name =

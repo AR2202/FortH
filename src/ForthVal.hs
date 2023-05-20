@@ -41,6 +41,7 @@ data ForthVal
   | Variable T.Text
   | Mem MemoryOp
   | PrintCommand
+  | PrintStringLiteral T.Text
   deriving (Show, Eq)
 
 data Loop = Loop
@@ -136,4 +137,5 @@ data Token
   | Var T.Text
   | COMMA
   | PRINT
+  | STRING T.Text
   deriving (Show, Eq)
