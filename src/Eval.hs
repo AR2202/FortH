@@ -47,7 +47,8 @@ initialNames =
         "AND",
         "XOR",
         "INVERT",
-        "MOD"
+        "MOD",
+        "I"
       ]
       [0 ..]
 
@@ -77,11 +78,13 @@ initialDefs =
         Arith And,
         Arith Xor,
         Arith Not,
-        Arith Mod
+        Arith Mod,
+        Forthvals [Number 0, Mem Retrieve]
+
       ]
 
 initialEnv :: Env
-initialEnv = Env initialNames initialDefs [] IM.empty 1 []
+initialEnv = Env initialNames initialDefs [] (IM.singleton 0 0) 1 []
 
 printF :: Env -> IO ()
 printF env =
@@ -276,17 +279,17 @@ evalIfElse env ifvals elsevals =
     0 : xs -> eval env (Forthvals elsevals)
     _ -> eval env (Forthvals ifvals)
 
-evalDoLoop env loop = go (Right env) (start loop) (loopbody loop)
+evalDoLoop env loop = go (Right (env{mem= IM.insert 0 (start loop) (mem env)}) ) (start loop) (loopbody loop)
   where
     go (Left err) _ _ = Left err
     go (Right env') index forthvals
       | index >= stop loop = Right env'
-      | otherwise = go (eval env' (Forthvals forthvals)) (index + 1) forthvals
+      | otherwise = go (eval (env' {mem=IM.insert 0 index  ( mem env)})(Forthvals forthvals)) (index + 1) forthvals
 
 evalPlusLoop env loop =
   case stack env of
     [] -> Left StackUnderflow
-    (x : xs) -> go (Right env) (start loop) x (loopbody loop)
+    (x : xs) -> go (Right env )(start loop) x (loopbody loop)
   where
     go (Left err) _ _ _ = Left err
     go (Right env') index step forthvals
@@ -294,9 +297,10 @@ evalPlusLoop env loop =
       | (step > 0 && index >= stop loop) || (step < 0 && index < stop loop) =
           Right env'
       | (stack <$> newenv) == Right [] = Left StackUnderflow
-      | otherwise = go newenv (index + step) newstep forthvals
+      | otherwise = go newenv  (index + step) newstep forthvals
       where
-        newenv = eval env' (Forthvals forthvals)
+        newenv = eval (env'  {mem=addedIndex})(Forthvals forthvals)
+        addedIndex = IM.insert 0 index  $ mem env'
         newstep =
           case newenv of
             Left _ -> 0
