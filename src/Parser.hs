@@ -262,75 +262,63 @@ tokensParser = whitespace >> many (tokenParser <* whitespace) <* eof
 -- This is a kind of clumsy hand-written Token parser because Parsec doesn't support this
 -- custom Token Type
 forthValParser :: [Token] -> Either ForthErr [ForthVal]
-forthValParser tokens = forthValParser' tokens [] []
+forthValParser tokens = forthValParser' tokens [] 
 
 forthValParser' ::
-  [Token] -> [ForthVal] -> [ForthVal] -> Either ForthErr [ForthVal]
-forthValParser' [] [] parsed = Right $ L.reverse parsed
-forthValParser' [] xs _ = Left SyntaxError
-forthValParser' (FUN funtokens : xs) ys parsed =
-  funParser funtokens xs ys parsed
-forthValParser' (UNCLOSED : xs) _ _ = Left SyntaxError
-forthValParser' ( DOLOOP dotokens : xs) ys parsed =
-  doLoopParser dotokens xs ys parsed
-forthValParser' ( PLUSLOOP dotokens : xs) ys parsed =
-  plusLoopParser  dotokens xs ys parsed
-forthValParser' (UNTILLOOP dotokens : xs) ys parsed =
-  untilLoopParser dotokens xs ys parsed
-forthValParser' (Ide text : xs) [] parsed =
-  forthValParser' xs [] (Word text : parsed)
-forthValParser' (Ide text : xs) ys parsed =
-  forthValParser' xs (Word text : ys) parsed
-forthValParser' (Num text : xs) [] parsed =
-  forthValParser' xs [] (Number (read (T.unpack text)) : parsed)
-forthValParser' (Num text : xs) ys parsed =
-  forthValParser' xs (Number (read (T.unpack text)) : ys) parsed
-forthValParser' (Colon : Ide t : xs) [] parsed = forthValParser' xs [Word t] parsed
-forthValParser' (Colon : Operator c : xs) [] parsed =
-  forthValParser' xs [Word (T.singleton c)] parsed
-forthValParser' (Colon : xs) _ _ = Left SyntaxError
-forthValParser' (Operator c : xs) [] parsed =
-  forthValParser' xs [] (Word (T.singleton c) : parsed)
-forthValParser' (Operator c : xs) ys parsed =
-  forthValParser' xs (Word (T.singleton c) : ys) parsed
-forthValParser' (BoolOperator c : xs) [] parsed =
-  forthValParser' xs [] (Word c : parsed)
-forthValParser' (BoolOperator c : xs) ys parsed =
-  forthValParser' xs (Word c : ys) parsed
-forthValParser' (Semicolon : xs) [] parsed = Left SyntaxError
-forthValParser' (Semicolon : xs) ys parsed = semicolonParser xs ys parsed
-forthValParser' (THEN : xs) ys parsed = forthValParser' xs ys parsed
-forthValParser' (IF iftokens : xs) ys parsed = ifParser iftokens xs ys parsed
-forthValParser' (IFELSE iftokens elsetokens : xs) ys parsed =
-  ifelseParser iftokens elsetokens xs ys parsed
-forthValParser' (Var name : xs) ys parsed =
-  forthValParser' xs ys (Variable name : parsed)
-forthValParser' (ALLOT : xs) ys parsed =
-  forthValParser' xs ys (Mem Allot : parsed)
-forthValParser' (CELLS : xs) ys parsed =
-  forthValParser' xs ys (Mem Cellsize : parsed)
-forthValParser' (COMMA : xs) ys parsed =
-  forthValParser' xs ys (Mem CommaStore : parsed)
-forthValParser' (PRINT: STRING t : xs) ys parsed =
-  forthValParser' xs ys (PrintStringLiteral t : parsed)
-forthValParser' (PRINT: xs) ys parsed =
-  forthValParser' xs ys (PrintCommand : parsed)
-forthValParser' _ _ _ = Left SyntaxError
+  [Token] -> [ForthVal] ->  Either ForthErr [ForthVal]
+forthValParser' [] parsed = Right $ L.reverse parsed
+
+forthValParser' (FUN funtokens : xs)  parsed =
+  funParser funtokens xs  parsed
+forthValParser' (UNCLOSED : xs) _= Left SyntaxError
+forthValParser' ( DOLOOP dotokens : xs)  parsed =
+  doLoopParser dotokens xs  parsed
+forthValParser' ( PLUSLOOP dotokens : xs)  parsed =
+  plusLoopParser  dotokens xs  parsed
+forthValParser' (UNTILLOOP dotokens : xs)  parsed =
+  untilLoopParser dotokens xs  parsed
+forthValParser' (Ide text : xs)  parsed =
+  forthValParser' xs  (Word text : parsed)
+forthValParser' (Num text : xs)  parsed =
+  forthValParser' xs  (Number (read (T.unpack text)) : parsed)
+forthValParser' (Colon : xs) _  = Left SyntaxError
+forthValParser' (Operator c : xs)  parsed =
+  forthValParser' xs  (Word (T.singleton c) : parsed)
+forthValParser' (BoolOperator c : xs)  parsed =
+  forthValParser' xs  (Word c : parsed)
+forthValParser' (Semicolon : xs)  parsed = Left SyntaxError
+forthValParser' (THEN : xs)  parsed = forthValParser' xs parsed
+forthValParser' (IF iftokens : xs)  parsed = ifParser iftokens xs  parsed
+forthValParser' (IFELSE iftokens elsetokens : xs)  parsed =
+  ifelseParser iftokens elsetokens xs  parsed
+forthValParser' (Var name : xs)  parsed =
+  forthValParser' xs  (Variable name : parsed)
+forthValParser' (ALLOT : xs)  parsed =
+  forthValParser' xs  (Mem Allot : parsed)
+forthValParser' (CELLS : xs)  parsed =
+  forthValParser' xs  (Mem Cellsize : parsed)
+forthValParser' (COMMA : xs)  parsed =
+  forthValParser' xs  (Mem CommaStore : parsed)
+forthValParser' (PRINT: STRING t : xs)  parsed =
+  forthValParser' xs  (PrintStringLiteral t : parsed)
+forthValParser' (PRINT: xs)  parsed =
+  forthValParser' xs  (PrintCommand : parsed)
+forthValParser' _ _  = Left SyntaxError
 
 doLoopParser ::
 
   [Token] ->
   [Token] ->
-  [ForthVal] ->
+ 
   [ForthVal] ->
   Either ForthErr [ForthVal]
-doLoopParser  dotokens xs ys parsed =
+doLoopParser  dotokens xs  parsed =
   case forthValParser dotokens of
     Left err -> Left err
     Right parseresults ->
       forthValParser'
         xs
-        ys
+        
         ( DoLoop (Loop  parseresults)
             : parsed
         )
@@ -339,16 +327,16 @@ untilLoopParser ::
 
   [Token] ->
   [Token] ->
-  [ForthVal] ->
+
   [ForthVal] ->
   Either ForthErr [ForthVal]
-untilLoopParser  dotokens xs ys parsed =
+untilLoopParser  dotokens xs  parsed =
   case forthValParser dotokens of
     Left err -> Left err
     Right parseresults ->
       forthValParser'
         xs
-        ys
+        
         ( UntilLoop  (Loop parseresults)
             : parsed
         )
@@ -357,21 +345,21 @@ plusLoopParser ::
 
   [Token] ->
   [Token] ->
-  [ForthVal] ->
+
   [ForthVal] ->
   Either ForthErr [ForthVal]
-plusLoopParser  dotokens xs ys parsed =
+plusLoopParser  dotokens xs parsed =
   case forthValParser dotokens of
     Left err -> Left err
     Right parseresults ->
       forthValParser'
         xs
-        ys
+     
         ( PlusLoop (Loop  parseresults)
             : parsed
         )
 
-semicolonParser xs ys parsed = forthValParser' xs [] (newdef ys : parsed)
+semicolonParser xs ys parsed = forthValParser' xs  (newdef ys : parsed)
   where
     newdef list =
       Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
@@ -379,33 +367,33 @@ semicolonParser xs ys parsed = forthValParser' xs [] (newdef ys : parsed)
 ifParser ::
   [Token] ->
   [Token] ->
-  [ForthVal] ->
+
   [ForthVal] ->
   Either ForthErr [ForthVal]
-ifParser iftokens xs ys parsed =
+ifParser iftokens xs  parsed =
   case forthValParser iftokens of
     Left err -> Left err
-    Right parseresults -> forthValParser' xs ys (If parseresults : parsed)
+    Right parseresults -> forthValParser' xs  (If parseresults : parsed)
 
 ifelseParser ::
   [Token] ->
   [Token] ->
   [Token] ->
-  [ForthVal] ->
+
   [ForthVal] ->
   Either ForthErr [ForthVal]
-ifelseParser iftokens elsetokens xs ys parsed =
+ifelseParser iftokens elsetokens xs  parsed =
   case forthValParser iftokens of
     Left err -> Left err
     Right parseresults ->
       case forthValParser elsetokens of
         Left err -> Left err
         Right parseresultsElse ->
-          forthValParser' xs ys (IfElse parseresults parseresultsElse : parsed)
-funParser funtokens xs ys parsed = 
+          forthValParser' xs  (IfElse parseresults parseresultsElse : parsed)
+funParser funtokens xs  parsed = 
   case forthValParser funtokens of
     Left err -> Left err
-    Right (Word t : parseresults) -> forthValParser' xs ys (Def (Fun t parseresults ) : parsed)
+    Right (Word t : parseresults) -> forthValParser' xs  (Def (Fun t parseresults ) : parsed)
     _ -> Left InvalidWord
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text
