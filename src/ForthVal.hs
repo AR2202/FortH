@@ -138,4 +138,5 @@ data Token
   | COMMA
   | PRINT
   | STRING T.Text
+  | FUN [Token]
   deriving (Show, Eq)

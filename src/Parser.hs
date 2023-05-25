@@ -150,8 +150,8 @@ doLoopToken :: Parser Token
 doLoopToken =
   DOLOOP
   <$> between
-      (string "DO" <* spaces)
-      (lookAhead (string "LOOP"))
+      (spaces*>string "DO" <* spaces)
+      (lookAhead (spaces*>string "LOOP"<* spaces))
       (many allTokenParser)
     
 
@@ -159,18 +159,25 @@ untilLoopToken :: Parser Token
 untilLoopToken =
   UNTILLOOP
     <$> between
-      (string "BEGIN" <* spaces)
-      (lookAhead (string "UNTIL"))
+      (spaces*>string "BEGIN" <* spaces)
+      (lookAhead (spaces*>string "UNTIL"<* spaces))
       (many allTokenParser)
 
 
+funToken :: Parser Token
+funToken =
+  FUN
+    <$> between
+      (spaces*>char ':' <* spaces)
+       ( (spaces*>char ';'<* spaces))
+      (many allTokenParser)
 
 plusLoopToken :: Parser Token
 plusLoopToken =
   PLUSLOOP
     <$> between
-      (string "DO" <* spaces)
-      (lookAhead (try (string "+LOOP")))
+      (spaces*>string "DO" <* spaces)
+      (lookAhead (try (spaces*>string "+LOOP")))
       (many allTokenParser)
 
 unclosedDo :: Parser Token
@@ -194,12 +201,12 @@ varToken =
   Var . T.pack <$> ((string "VARIABLE" <* spaces) >> (many1 alphaNum <* spaces))
 
 allTokenParser :: Parser Token
-allTokenParser =
-  try colonToken
-    <|> try operatorToken
+allTokenParser =  -- try funToken
+    -- <|> try colonToken
+    try operatorToken
     <|> try operatorORToken
     <|> try operatorAndToken
-    <|> try semicolonToken
+    -- <|> try semicolonToken
     <|> try dotToken
     <|> try varToken
     <|> try allotToken
@@ -220,8 +227,8 @@ allTokenParser =
     <|> unclosedIF
 
 tokenParser :: Parser Token
-tokenParser =
-  try colonToken
+tokenParser = try funToken
+    <|> try colonToken
     <|> try semicolonToken
     <|> try dotToken
     <|> try (plusLoopToken <* ploopToken)
@@ -261,6 +268,8 @@ forthValParser' ::
   [Token] -> [ForthVal] -> [ForthVal] -> Either ForthErr [ForthVal]
 forthValParser' [] [] parsed = Right $ L.reverse parsed
 forthValParser' [] xs _ = Left SyntaxError
+forthValParser' (FUN funtokens : xs) ys parsed =
+  funParser funtokens xs ys parsed
 forthValParser' (UNCLOSED : xs) _ _ = Left SyntaxError
 forthValParser' (Num x : Num y : DOLOOP dotokens : xs) ys parsed =
   doLoopParser x y dotokens xs ys parsed
@@ -395,7 +404,11 @@ ifelseParser iftokens elsetokens xs ys parsed =
         Left err -> Left err
         Right parseresultsElse ->
           forthValParser' xs ys (IfElse parseresults parseresultsElse : parsed)
-
+funParser funtokens xs ys parsed = 
+  case forthValParser funtokens of
+    Left err -> Left err
+    Right (Word t : parseresults) -> forthValParser' xs ys (Def (Fun t parseresults ) : parsed)
+    _ -> Left InvalidWord
 -- this function is partial. However, it should never be called on a ForthVal Variant other than Word
 reverseParse :: ForthVal -> T.Text
 reverseParse (Word t) = t

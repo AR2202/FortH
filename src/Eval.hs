@@ -12,6 +12,12 @@ module Eval
     evalAndPrintStackTopRepl,
     evalInputRepl,
     evalFile,
+    evalAndPrintDefDict,
+    evalAndPrintMemory,
+    evalAndPrintNames,
+    printDefs,
+    printMem,
+    printNames
   )
 where
 
@@ -94,6 +100,15 @@ printF env =
 
 printStack :: Env -> IO ()
 printStack env = mapM_ print $ L.reverse $ stack env
+
+printDefs :: Env -> IO ()
+printDefs env = print $ definitions env
+
+printNames :: Env -> IO ()
+printNames env = print $ names env
+
+printMem :: Env -> IO ()
+printMem env = print $ mem env
 
 eval :: Env -> ForthVal -> Either ForthErr Env
 eval env (Number x) = evalNum env x
@@ -258,7 +273,7 @@ evalDef env fun =
           }
       where
         newword = name fun
-        newaddress = Map.size (names env)
+        newaddress = Map.size (names env) + 1
 
 evalForthvals env forthvals = L.foldl' eval' (Right env) forthvals
   where
@@ -372,8 +387,9 @@ evalMemRetrieve env =
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
 
-evalDefComponents env (Number i) = Just (Number i)
+
 evalDefComponents env (Word text) = fmap Address $ Map.lookup text (names env)
+evalDefComponents env x = Just x
 
 evalDefBody env forthvals =
   sequenceA $ Prelude.map (evalDefComponents env) forthvals
@@ -395,6 +411,26 @@ evalInputRepl = evalInput "repl"
 evalAndPrintStackTop :: String -> T.Text -> Env -> IO ()
 evalAndPrintStackTop filename text env =
   mapM_ printF $ evalInput filename text env
+
+
+evalAndPrintDefDict :: String -> T.Text -> Env -> IO ()
+evalAndPrintDefDict filename text env =
+  case evalInput filename text env of
+    Left e -> print e
+    Right env' -> printDefs env'
+
+
+evalAndPrintNames :: String -> T.Text -> Env -> IO ()
+evalAndPrintNames filename text env =
+  case evalInput filename text env of
+    Left e -> print e
+    Right env' -> printNames env'
+
+evalAndPrintMemory :: String -> T.Text -> Env -> IO ()
+evalAndPrintMemory filename text env =
+  case evalInput filename text env of
+    Left e -> print e
+    Right env' -> printMem env'
 
 evalAndPrintStackTopRepl = evalAndPrintStackTop "repl"
 
