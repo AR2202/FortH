@@ -294,39 +294,40 @@ evalIfElse env ifvals elsevals =
     0 : xs -> eval env (Forthvals elsevals)
     _ -> eval env (Forthvals ifvals)
 
-evalDoLoop env loop = go (Right (env{mem= IM.insert 0 (start loop) (mem env)}) ) (start loop) (loopbody loop)
+evalDoLoop env loop = 
+  case stack env of
+    [] -> Left StackUnderflow
+    [x] -> Left StackUnderflow
+    (x:y:zs) -> go (Right (env{mem= IM.insert 0 x (mem env), stack=zs}) ) x y (loopbody loop)
   where
-    go (Left err) _ _ = Left err
-    go (Right env') index forthvals
-      | index >= stop loop = Right env'
-      | otherwise = go (eval (env' {mem=IM.insert 0 index  ( mem env)})(Forthvals forthvals)) (index + 1) forthvals
+    go (Left err) _ _ _ = Left err
+    go (Right env') index stop forthvals
+      | index >= stop = Right env'
+      | otherwise = go (eval (env' {mem=IM.insert 0 index  ( mem env)})(Forthvals forthvals)) (index + 1) stop forthvals
 
 evalPlusLoop env loop =
   case stack env of
     [] -> Left StackUnderflow
-    (x : xs) -> go (Right env )(start loop) x (loopbody loop)
+    [x] -> Left StackUnderflow
+    (x : y: xs) -> go (Right (env{mem= IM.insert 0 x (mem env), stack=xs}) )x y (loopbody loop)
   where
     go (Left err) _ _ _ = Left err
-    go (Right env') index step forthvals
-      | step == 0 = Left SyntaxError
-      | (step > 0 && index >= stop loop) || (step < 0 && index < stop loop) =
-          Right env'
-      | (stack <$> newenv) == Right [] = Left StackUnderflow
-      | otherwise = go newenv  (index + step) newstep forthvals
+    go (Right env') index stop forthvals =
+      case stack env' of
+        [] -> Left StackUnderflow
+        (0:xs) -> Left SyntaxError
+        (step:xs) -> if (step > 0 && index >= stop) || (step < 0 && index < stop) then Right env' else go newenv  (index + step)  stop forthvals
       where
         newenv = eval (env'  {mem=addedIndex})(Forthvals forthvals)
         addedIndex = IM.insert 0 index  $ mem env'
-        newstep =
-          case newenv of
-            Left _ -> 0
-            Right newenv' -> L.head $ stack newenv'
+      
 
-evalUntilLoop env loop = case eval env (Forthvals loop) of
+evalUntilLoop env loop = case eval env (Forthvals (loopbody loop) )of
   Left err -> Left err
   Right newenv -> case stack newenv of
     [] -> Left StackUnderflow
     (0:xs) -> evalUntilLoop (newenv{stack = xs}) loop
-    (x:xs) -> Right newenv {stack = xs}
+    (x:xs) -> Right (newenv {stack = xs})
 
 evalVar :: Env -> T.Text -> Either ForthErr Env
 evalVar env varname =

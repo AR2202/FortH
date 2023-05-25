@@ -37,16 +37,15 @@ data ForthVal
   | IfElse [ForthVal] [ForthVal]
   | DoLoop Loop
   | PlusLoop Loop
-  | UntilLoop [ForthVal]
+  | UntilLoop Loop
   | Variable T.Text
   | Mem MemoryOp
   | PrintCommand
   | PrintStringLiteral T.Text
   deriving (Show, Eq)
 
-data Loop = Loop
-  { start :: Int,
-    stop :: Int,
+newtype Loop = Loop
+  { 
     loopbody :: [ForthVal]
   }
   deriving (Show, Eq)

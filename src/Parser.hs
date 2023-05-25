@@ -271,10 +271,10 @@ forthValParser' [] xs _ = Left SyntaxError
 forthValParser' (FUN funtokens : xs) ys parsed =
   funParser funtokens xs ys parsed
 forthValParser' (UNCLOSED : xs) _ _ = Left SyntaxError
-forthValParser' (Num x : Num y : DOLOOP dotokens : xs) ys parsed =
-  doLoopParser x y dotokens xs ys parsed
-forthValParser' (Num x : Num y : PLUSLOOP dotokens : xs) ys parsed =
-  plusLoopParser x y dotokens xs ys parsed
+forthValParser' ( DOLOOP dotokens : xs) ys parsed =
+  doLoopParser dotokens xs ys parsed
+forthValParser' ( PLUSLOOP dotokens : xs) ys parsed =
+  plusLoopParser  dotokens xs ys parsed
 forthValParser' (UNTILLOOP dotokens : xs) ys parsed =
   untilLoopParser dotokens xs ys parsed
 forthValParser' (Ide text : xs) [] parsed =
@@ -318,21 +318,20 @@ forthValParser' (PRINT: xs) ys parsed =
 forthValParser' _ _ _ = Left SyntaxError
 
 doLoopParser ::
-  T.Text ->
-  T.Text ->
+
   [Token] ->
   [Token] ->
   [ForthVal] ->
   [ForthVal] ->
   Either ForthErr [ForthVal]
-doLoopParser x y dotokens xs ys parsed =
+doLoopParser  dotokens xs ys parsed =
   case forthValParser dotokens of
     Left err -> Left err
     Right parseresults ->
       forthValParser'
         xs
         ys
-        ( DoLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults)
+        ( DoLoop (Loop  parseresults)
             : parsed
         )
 
@@ -350,26 +349,25 @@ untilLoopParser  dotokens xs ys parsed =
       forthValParser'
         xs
         ys
-        ( UntilLoop  parseresults
+        ( UntilLoop  (Loop parseresults)
             : parsed
         )
 
 plusLoopParser ::
-  T.Text ->
-  T.Text ->
+
   [Token] ->
   [Token] ->
   [ForthVal] ->
   [ForthVal] ->
   Either ForthErr [ForthVal]
-plusLoopParser x y dotokens xs ys parsed =
+plusLoopParser  dotokens xs ys parsed =
   case forthValParser dotokens of
     Left err -> Left err
     Right parseresults ->
       forthValParser'
         xs
         ys
-        ( PlusLoop (Loop (read (T.unpack y)) (read (T.unpack x)) parseresults)
+        ( PlusLoop (Loop  parseresults)
             : parsed
         )
 
