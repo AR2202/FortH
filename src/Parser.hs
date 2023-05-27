@@ -89,6 +89,9 @@ atToken = const (Ide "@") <$> (spaces >> char '@' >> spaces)
 commaToken :: Parser Token
 commaToken = const COMMA <$> (spaces >> char ',' >> spaces)
 
+tickToken :: Parser Token
+tickToken = const NAME <$> (spaces >> char '\'' >> spaces)
+
 dotToken :: Parser Token
 dotToken = const PRINT <$> (spaces >> char '.' >> spaces)
 
@@ -212,6 +215,7 @@ allTokenParser =  -- try funToken
     <|> try allotToken
     <|> try cellsToken
     <|> try numToken
+    <|> try tickToken
     <|> try (untilLoopToken <* untilToken)
     <|> try stringLitToken
     <|> try wordToken
@@ -231,6 +235,7 @@ tokenParser = try funToken
     <|> try colonToken
     <|> try semicolonToken
     <|> try dotToken
+    <|> try tickToken
     <|> try (plusLoopToken <* ploopToken)
     <|> try operatorToken
     <|> try operatorORToken
@@ -277,6 +282,8 @@ forthValParser' ( PLUSLOOP dotokens : xs)  parsed =
   plusLoopParser  dotokens xs  parsed
 forthValParser' (UNTILLOOP dotokens : xs)  parsed =
   untilLoopParser dotokens xs  parsed
+forthValParser' (NAME: (Ide t) : xs)  parsed =
+  forthValParser' xs  (NameLookup t : parsed)
 forthValParser' (Ide text : xs)  parsed =
   forthValParser' xs  (Word text : parsed)
 forthValParser' (Num text : xs)  parsed =
@@ -303,6 +310,7 @@ forthValParser' (PRINT: STRING t : xs)  parsed =
   forthValParser' xs  (PrintStringLiteral t : parsed)
 forthValParser' (PRINT: xs)  parsed =
   forthValParser' xs  (PrintCommand : parsed)
+
 forthValParser' _ _  = Left SyntaxError
 
 doLoopParser ::

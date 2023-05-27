@@ -54,7 +54,8 @@ initialNames =
         "XOR",
         "INVERT",
         "MOD",
-        "I"
+        "I",
+        "EXECUTE"
       ]
       [0 ..]
 
@@ -85,7 +86,8 @@ initialDefs =
         Arith Xor,
         Arith Not,
         Arith Mod,
-        Forthvals [Number 0, Mem Retrieve]
+        Forthvals [Number 0, Mem Retrieve],
+        DictLookup
 
       ]
 
@@ -120,6 +122,7 @@ eval env (Manip Swap) = evalSwap env
 eval env (Manip Over) = evalOver env
 eval env (Manip Rot) = evalRot env
 eval env (Manip Invert) = evalInvert env
+eval env (NameLookup name) = evalNameLookup env name
 eval env (Word name) = evalWord env name
 eval env (Address i) = evalAddress env i
 eval env (Def fun) = evalDef env fun
@@ -137,6 +140,7 @@ eval env (Mem Cellsize) = evalMemCellsize env
 eval env (Mem CommaStore) = evalMemComma env
 eval env PrintCommand = evalPrint env
 eval env (PrintStringLiteral t) = evalPrintString env t
+eval env DictLookup = evalLookup env 
 
 evalNum :: Env -> Int -> Either ForthErr Env
 evalNum env x = Right env {stack = x : stack env}
@@ -261,7 +265,20 @@ evalAddress env i =
     Nothing -> Left UnknownWord
     Just forthval -> eval env forthval
 
+evalLookup :: Env -> Either ForthErr Env
+evalLookup env  =
+  case stack env of
+    [] -> Left StackUnderflow
+    (x:xs) -> eval (env {stack=xs}) (Address x)
+
+evalNameLookup :: Env -> T.Text -> Either ForthErr Env
+evalNameLookup env name =
+  case Map.lookup name (names env) of
+    Nothing -> Left UnknownWord
+    Just i -> Right $ env {stack= i:stack env}
+
 evalDef env fun =
+  
   case evalDefBody env (body fun) of
     Nothing -> Left UnknownWord
     Just forthvals ->

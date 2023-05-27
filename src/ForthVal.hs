@@ -42,6 +42,8 @@ data ForthVal
   | Mem MemoryOp
   | PrintCommand
   | PrintStringLiteral T.Text
+  | DictLookup
+  | NameLookup T.Text
   deriving (Show, Eq)
 
 newtype Loop = Loop
@@ -138,4 +140,5 @@ data Token
   | PRINT
   | STRING T.Text
   | FUN [Token]
+  | NAME
   deriving (Show, Eq)
