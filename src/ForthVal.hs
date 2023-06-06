@@ -47,12 +47,9 @@ data ForthVal
   deriving (Show, Eq)
 
 newtype Loop = Loop
-  { 
-    loopbody :: [ForthVal]
+  { loopbody :: [ForthVal]
   }
   deriving (Show, Eq)
-
-
 
 data Fun = Fun
   { name :: T.Text,
