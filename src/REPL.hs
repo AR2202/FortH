@@ -15,12 +15,12 @@ repl' env = do
   putStrLn "FortHi> "
     
   input <- getLine
-  let newenv = evalInputRepl (T.pack input) env
+ 
   case input of
     ":q" -> putStrLn "Goodbye"
     ".s" -> printStack env >> repl' env
     _ ->
-      case newenv of
+      case evalInputRepl (T.pack input) env of
         Left e    -> print e >> repl' env
         Right new ->  putStrLn "ok" >> mapM_ putStrLn ((Prelude.reverse . printStr) new) >> printF new >>repl' new {printStr = []}
 
