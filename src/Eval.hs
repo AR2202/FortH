@@ -21,6 +21,7 @@ module Eval
   )
 where
 
+import ASCII
 import Data.IntMap as IM
 import Data.List as L
 import qualified Data.Map as Map
@@ -55,7 +56,8 @@ initialNames =
         "INVERT",
         "MOD",
         "I",
-        "EXECUTE"
+        "EXECUTE",
+        "EMIT"
       ]
       [0 ..]
 
@@ -87,7 +89,8 @@ initialDefs =
         Arith Not,
         Arith Mod,
         Forthvals [Number 0, Mem Retrieve],
-        DictLookup
+        DictLookup,
+        Ascii
       ]
 
 initialEnv :: Env
@@ -140,6 +143,13 @@ eval env (Mem CommaStore) = evalMemComma env
 eval env PrintCommand = evalPrint env
 eval env (PrintStringLiteral t) = evalPrintString env t
 eval env DictLookup = evalLookup env
+eval env Ascii = evalAscii env
+
+evalAscii env = case stack env of
+  [] -> Left StackUnderflow
+  (x : xs) -> case IM.lookup x asciiTable of
+    Nothing -> Left NonAsciiCode
+    Just c -> Right $ env {stack = xs, printStr = return c : printStr env}
 
 evalNum :: Env -> Int -> Either ForthErr Env
 evalNum env x = Right env {stack = x : stack env}

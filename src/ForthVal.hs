@@ -44,6 +44,7 @@ data ForthVal
   | PrintStringLiteral T.Text
   | DictLookup
   | NameLookup T.Text
+  | Ascii
   deriving (Show, Eq)
 
 newtype Loop = Loop
@@ -114,6 +115,7 @@ data ForthErr
   | SyntaxError
   | ParseErr
   | MemoryAccessError
+  | NonAsciiCode
   deriving (Show, Read, Eq)
 
 data Token

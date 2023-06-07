@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 59d4d8af90c710fa913351636ee0a40b3a9f4f36da3569fcfa7f82cb93bdcbec
+-- hash: 9d0c0ece6e0f98a28063be31eefcc5067dc82400cb4a231f0170b2e4dc32410c
 
 name:           FortH
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      ASCII
       Eval
       ForthVal
       Parser
