@@ -95,6 +95,9 @@ tickToken = const NAME <$> (spaces >> char '\'' >> spaces)
 dotToken :: Parser Token
 dotToken = const PRINT <$> (spaces >> char '.' >> spaces)
 
+keyToken :: Parser Token
+keyToken =  KEY <$> (spaces >> string "KEY"  >> space *> anyChar<*spaces)
+
 ifToken :: Parser Token
 ifToken =
   IF
@@ -218,12 +221,14 @@ allTokenParser =  -- try funToken
     <|> try tickToken
     <|> try (untilLoopToken <* untilToken)
     <|> try stringLitToken
+    <|> try keyToken
     <|> try wordToken
     <|> try exclamationToken
     <|> try atToken
     <|> try commaToken
     <|> try (plusLoopToken <* ploopToken)
     <|> try (doLoopToken <* loopToken)
+
 
     <|> try (ifelseToken <* thenToken)
     <|> try (ifToken <* thenToken)
@@ -250,6 +255,7 @@ tokenParser = try funToken
     <|> try cellsToken
     <|> try (untilLoopToken <* untilToken)
     <|> try stringLitToken
+     <|> try keyToken
     <|> try wordToken
     <|> try numToken
     <|> try (doLoopToken <* loopToken)
@@ -310,6 +316,8 @@ forthValParser' (PRINT: STRING t : xs)  parsed =
   forthValParser' xs  (PrintStringLiteral t : parsed)
 forthValParser' (PRINT: xs)  parsed =
   forthValParser' xs  (PrintCommand : parsed)
+forthValParser' (KEY c: xs)  parsed =
+  forthValParser' xs  (Key c : parsed) 
 
 forthValParser' _ _  = Left SyntaxError
 

@@ -144,10 +144,17 @@ eval env PrintCommand = evalPrint env
 eval env (PrintStringLiteral t) = evalPrintString env t
 eval env DictLookup = evalLookup env
 eval env Ascii = evalAscii env
+eval env (Key c) = evalKey env c
 
+evalKey :: Env -> Char -> Either ForthErr Env
+evalKey env c = case ascii2num c of
+  Nothing -> Left NonAsciiCode
+  Just n -> Right $ env {stack = n : stack env}
+
+evalAscii :: Env -> Either ForthErr Env
 evalAscii env = case stack env of
   [] -> Left StackUnderflow
-  (x : xs) -> case IM.lookup x asciiTable of
+  (x : xs) -> case num2ascii x of
     Nothing -> Left NonAsciiCode
     Just c -> Right $ env {stack = xs, printStr = return c : printStr env}
 
@@ -285,6 +292,7 @@ evalNameLookup env name =
     Nothing -> Left UnknownWord
     Just i -> Right $ env {stack = i : stack env}
 
+evalDef :: Env -> Fun -> Either ForthErr Env
 evalDef env fun =
   case evalDefBody env (body fun) of
     Nothing -> Left UnknownWord
@@ -306,18 +314,21 @@ evalForthvals env forthvals = L.foldl' eval' (Right env) forthvals
         Left error -> Left error
         Right env -> eval env forthval
 
+evalIf :: Env -> [ForthVal] -> Either ForthErr Env
 evalIf env forthvals =
   case stack env of
     [] -> Left StackUnderflow
     0 : xs -> Right env
     _ -> eval env (Forthvals forthvals)
 
+evalIfElse :: Env -> [ForthVal] -> [ForthVal] -> Either ForthErr Env
 evalIfElse env ifvals elsevals =
   case stack env of
     [] -> Left StackUnderflow
     0 : xs -> eval env (Forthvals elsevals)
     _ -> eval env (Forthvals ifvals)
 
+evalDoLoop :: Env -> Loop -> Either ForthErr Env
 evalDoLoop env loop =
   case stack env of
     [] -> Left StackUnderflow
@@ -328,6 +339,7 @@ evalDoLoop env loop =
       | index >= stop = Right env'
       | otherwise = eval (env' {mem = IM.insert 0 index (mem env)}) (Forthvals forthvals) >>= go (index + 1) stop forthvals
 
+evalPlusLoop :: Env -> Loop -> Either ForthErr Env
 evalPlusLoop env loop =
   case stack env of
     [] -> Left StackUnderflow
@@ -406,12 +418,14 @@ evalMemRetrieve env =
         Nothing -> Left MemoryAccessError
         Just retrieved -> Right $ env {stack = retrieved : zs}
 
+lookupAll :: Text -> Env -> Maybe [Int]
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
 
 evalDefComponents env (Word text) = fmap Address $ Map.lookup text (names env)
 evalDefComponents env x = Just x
 
+evalDefBody :: Env -> [ForthVal] -> Maybe [ForthVal]
 evalDefBody env forthvals =
   sequenceA $ Prelude.map (evalDefComponents env) forthvals
 

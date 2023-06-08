@@ -45,6 +45,7 @@ data ForthVal
   | DictLookup
   | NameLookup T.Text
   | Ascii
+  | Key Char
   deriving (Show, Eq)
 
 newtype Loop = Loop
@@ -140,4 +141,5 @@ data Token
   | STRING T.Text
   | FUN [Token]
   | NAME
+  | KEY Char
   deriving (Show, Eq)
