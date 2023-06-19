@@ -148,6 +148,20 @@ eval env DictLookup = evalLookup env
 eval env Ascii = evalAscii env
 eval env (Key c) = evalKey env c
 eval env Type = evalType env
+eval env (StoreString s) = evalStoreStr env s
+
+evalStoreStr :: Env -> String -> Either ForthErr Env
+evalStoreStr env s =
+  case traverse ascii2num s of
+    Nothing -> Left NonAsciiCode
+    Just ns ->
+      Right $
+        env
+          { stack = L.length s : nextmemaddr (mem env) : stack env,
+            mem = L.foldl' (\mem' n -> IM.insert (nextmemaddr mem') n mem') (mem env) ns
+          }
+  where
+    nextmemaddr mem' = IM.size mem' * memorycell env
 
 evalType :: Env -> Either ForthErr Env
 evalType env = case stack env of

@@ -46,7 +46,8 @@ data ForthVal
   | NameLookup T.Text
   | Ascii
   | Key Char
-  | Type 
+  | Type
+  | StoreString String
   deriving (Show, Eq)
 
 newtype Loop = Loop
@@ -144,4 +145,5 @@ data Token
   | NAME
   | KEY Char
   | TYPE
+  | STORESTR String
   deriving (Show, Eq)

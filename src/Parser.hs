@@ -195,6 +195,14 @@ unclosedDo =
             >> notFollowedBy (string "LOOP")
         )
 
+storeStrToken :: Parser Token
+storeStrToken =
+  STORESTR
+    <$> between
+      (spaces *> string "S\"" <* spaces)
+      (spaces *> char '\"' <* spaces)
+      (many (noneOf ['"']))
+
 stringLitToken :: Parser Token
 stringLitToken =
   STRING . T.pack
@@ -222,6 +230,7 @@ allTokenParser =
     <|> try numToken
     <|> try tickToken
     <|> try (untilLoopToken <* untilToken)
+    <|> try storeStrToken
     <|> try stringLitToken
     <|> try keyToken
     <|> try typeToken
@@ -256,6 +265,7 @@ tokenParser =
     <|> try allotToken
     <|> try cellsToken
     <|> try (untilLoopToken <* untilToken)
+    <|> try storeStrToken
     <|> try stringLitToken
     <|> try keyToken
     <|> try typeToken
@@ -321,6 +331,8 @@ forthValParser' (KEY c : xs) parsed =
   forthValParser' xs (Key c : parsed)
 forthValParser' (TYPE : xs) parsed =
   forthValParser' xs (Type : parsed)
+forthValParser' (STORESTR s : xs) parsed =
+  forthValParser' xs (StoreString s : parsed)
 forthValParser' _ _ = Left SyntaxError
 
 doLoopParser ::
