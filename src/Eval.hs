@@ -22,10 +22,12 @@ module Eval
 where
 
 import ASCII
+import Control.Exception (AsyncException (StackOverflow))
 import Data.IntMap as IM
 import Data.List as L
 import qualified Data.Map as Map
 import Data.Text as T
+import Foreign.C (Errno (Errno))
 import ForthVal
 import Parser
 
@@ -145,6 +147,22 @@ eval env (PrintStringLiteral t) = evalPrintString env t
 eval env DictLookup = evalLookup env
 eval env Ascii = evalAscii env
 eval env (Key c) = evalKey env c
+eval env Type = evalType env
+
+evalType :: Env -> Either ForthErr Env
+evalType env = case stack env of
+  [] -> Left StackUnderflow
+  (x : xs) -> fetchStr x env {stack = xs} ""
+
+fetchStr 0 env s = Right $ env {printStr = L.reverse s : printStr env}
+fetchStr n env s = case evalDup env >>= evalMemRetrieve of
+  Left err -> Left err
+  Right env' -> case stack env' of
+    [] -> Left StackUnderflow
+    [x] -> Left StackUnderflow
+    (x : y : xs) -> case num2ascii x of
+      Nothing -> Left NonAsciiCode
+      Just c -> fetchStr (n -1) (env' {stack = y + memorycell env : xs}) (c : s)
 
 evalKey :: Env -> Char -> Either ForthErr Env
 evalKey env c = case ascii2num c of

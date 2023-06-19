@@ -46,6 +46,7 @@ data ForthVal
   | NameLookup T.Text
   | Ascii
   | Key Char
+  | Type 
   deriving (Show, Eq)
 
 newtype Loop = Loop
@@ -142,4 +143,5 @@ data Token
   | FUN [Token]
   | NAME
   | KEY Char
+  | TYPE
   deriving (Show, Eq)
