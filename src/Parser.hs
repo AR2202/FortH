@@ -217,12 +217,9 @@ varToken =
 
 allTokenParser :: Parser Token
 allTokenParser =
-  -- try funToken
-  -- <|> try colonToken
   try operatorToken
     <|> try operatorORToken
     <|> try operatorAndToken
-    -- <|> try semicolonToken
     <|> try dotToken
     <|> try varToken
     <|> try allotToken
@@ -346,8 +343,8 @@ doLoopParser dotokens xs parsed =
     Right parseresults ->
       forthValParser'
         xs
-        ( DoLoop (Loop parseresults) :
-          parsed
+        ( DoLoop (Loop parseresults)
+            : parsed
         )
 
 untilLoopParser ::
@@ -361,8 +358,8 @@ untilLoopParser dotokens xs parsed =
     Right parseresults ->
       forthValParser'
         xs
-        ( UntilLoop (Loop parseresults) :
-          parsed
+        ( UntilLoop (Loop parseresults)
+            : parsed
         )
 
 plusLoopParser ::
@@ -376,14 +373,9 @@ plusLoopParser dotokens xs parsed =
     Right parseresults ->
       forthValParser'
         xs
-        ( PlusLoop (Loop parseresults) :
-          parsed
+        ( PlusLoop (Loop parseresults)
+            : parsed
         )
-
-semicolonParser xs ys parsed = forthValParser' xs (newdef ys : parsed)
-  where
-    newdef list =
-      Def (Fun (reverseParse (L.last list)) (L.reverse (L.init list)))
 
 ifParser ::
   [Token] ->
@@ -415,10 +407,6 @@ funParser funtokens xs parsed =
     Left err -> Left err
     Right (Word t : parseresults) -> forthValParser' xs (Def (Fun t parseresults) : parsed)
     _ -> Left InvalidWord
-
--- this function is partial. However, it should never be called on a ForthVal Variant other than Word
-reverseParse :: ForthVal -> T.Text
-reverseParse (Word t) = t
 
 tokenizeFromText :: String -> T.Text -> Either ParseError [Token]
 tokenizeFromText = parse tokensParser
