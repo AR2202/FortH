@@ -22,7 +22,7 @@ module Eval
 where
 
 import ASCII
-import Control.Exception (AsyncException (StackOverflow))
+import Control.Exception (AsyncException (StackOverflow), catchJust)
 import Control.Monad.Except (ExceptT (..), catchError, runExceptT, throwError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
@@ -33,6 +33,7 @@ import Data.Text as T
 import Foreign.C (Errno (Errno))
 import ForthVal
 import Parser
+import System.IO.Error (ioeGetErrorType, isDoesNotExistErrorType)
 
 initialNames :: Names
 initialNames =
@@ -156,6 +157,7 @@ eval env (StoreString s) = evalStoreStr env s
 -- a test for ExceptT
 
 evalT :: Env -> ForthVal -> ExceptT ForthErr IO Env
+evalT env (SourceFile f) = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) (evalFile f >> return (Right env)) (\_ -> return (Left (FileNotFound f)))
 evalT env val = ExceptT $ return $ eval env val
 
 evalStoreStr :: Env -> String -> Either ForthErr Env
@@ -480,8 +482,8 @@ evalInput filename text env =
 evalInputT :: String -> T.Text -> Env -> ExceptT ForthErr IO Env
 evalInputT filename text env =
   case parseFromText filename text of
-    Left e -> ExceptT $ return $ Left e
-    Right forthvals -> L.foldl' eval' (ExceptT $ return $ Right env) forthvals
+    Left e -> throwError e
+    Right forthvals -> L.foldl' eval' (lift $ return env) forthvals
       where
         eval' eEnv forthval = eEnv >>= flip evalT forthval
 

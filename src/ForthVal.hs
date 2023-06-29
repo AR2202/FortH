@@ -48,6 +48,7 @@ data ForthVal
   | Key Char
   | Type
   | StoreString String
+  | SourceFile String
   deriving (Show, Eq)
 
 newtype Loop = Loop
@@ -119,6 +120,7 @@ data ForthErr
   | ParseErr
   | MemoryAccessError
   | NonAsciiCode
+  | FileNotFound String
   deriving (Show, Read, Eq)
 
 data Token
@@ -146,4 +148,5 @@ data Token
   | KEY Char
   | TYPE
   | STORESTR String
+  | EvalSource String
   deriving (Show, Eq)

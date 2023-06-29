@@ -18,12 +18,14 @@ module Parser
   )
 where
 
+import Control.Exception (catchJust)
 import Control.Monad (guard, void)
 import Data.IntMap as IM
 import Data.List as L
 import qualified Data.Map as Map
 import Data.Text as T
 import ForthVal
+import System.IO.Error (ioeGetErrorType, isDoesNotExistErrorType)
 import Text.Parsec
 import Text.Parsec.Expr
 import qualified Text.Parsec.Language as Lang
@@ -215,6 +217,14 @@ varToken :: Parser Token
 varToken =
   Var . T.pack <$> ((string "VARIABLE" <* spaces) >> (many1 alphaNum <* spaces))
 
+sourceFileToken :: Parser Token
+sourceFileToken =
+  EvalSource
+    <$> between
+      (string ":e \"")
+      (char '"')
+      (many (noneOf ['"']))
+
 allTokenParser :: Parser Token
 allTokenParser =
   try operatorToken
@@ -245,6 +255,7 @@ allTokenParser =
 tokenParser :: Parser Token
 tokenParser =
   try funToken
+    <|> try sourceFileToken
     <|> try colonToken
     <|> try semicolonToken
     <|> try dotToken
@@ -330,6 +341,8 @@ forthValParser' (TYPE : xs) parsed =
   forthValParser' xs (Type : parsed)
 forthValParser' (STORESTR s : xs) parsed =
   forthValParser' xs (StoreString s : parsed)
+forthValParser' (EvalSource s : xs) parsed =
+  forthValParser' xs (SourceFile s : parsed)
 forthValParser' _ _ = Left SyntaxError
 
 doLoopParser ::
