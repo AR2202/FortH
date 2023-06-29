@@ -23,6 +23,9 @@ where
 
 import ASCII
 import Control.Exception (AsyncException (StackOverflow))
+import Control.Monad.Except (ExceptT (..), catchError, runExceptT, throwError)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Class (lift)
 import Data.IntMap as IM
 import Data.List as L
 import qualified Data.Map as Map
@@ -150,6 +153,11 @@ eval env (Key c) = evalKey env c
 eval env Type = evalType env
 eval env (StoreString s) = evalStoreStr env s
 
+-- a test for ExceptT
+
+evalT :: Env -> ForthVal -> ExceptT ForthErr IO Env
+evalT env val = ExceptT $ return $ eval env val
+
 evalStoreStr :: Env -> String -> Either ForthErr Env
 evalStoreStr env s =
   case traverse ascii2num s of
@@ -176,7 +184,7 @@ fetchStr n env s = case evalDup env >>= evalMemRetrieve of
     [x] -> Left StackUnderflow
     (x : y : xs) -> case num2ascii x of
       Nothing -> Left NonAsciiCode
-      Just c -> fetchStr (n -1) (env' {stack = y + memorycell env : xs}) (c : s)
+      Just c -> fetchStr (n - 1) (env' {stack = y + memorycell env : xs}) (c : s)
 
 evalKey :: Env -> Char -> Either ForthErr Env
 evalKey env c = case ascii2num c of
@@ -469,8 +477,16 @@ evalInput filename text env =
       where
         eval' eEnv forthval = eEnv >>= flip eval forthval
 
-evalInputRepl :: T.Text -> Env -> Either ForthErr Env
-evalInputRepl = evalInput "repl"
+evalInputT :: String -> T.Text -> Env -> ExceptT ForthErr IO Env
+evalInputT filename text env =
+  case parseFromText filename text of
+    Left e -> ExceptT $ return $ Left e
+    Right forthvals -> L.foldl' eval' (ExceptT $ return $ Right env) forthvals
+      where
+        eval' eEnv forthval = eEnv >>= flip evalT forthval
+
+evalInputRepl :: T.Text -> Env -> ExceptT ForthErr IO Env
+evalInputRepl = evalInputT "repl"
 
 evalAndPrintStackTop :: String -> T.Text -> Env -> IO ()
 evalAndPrintStackTop filename text env =
