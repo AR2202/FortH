@@ -213,6 +213,10 @@ stringLitToken =
       (char '"')
       (many (noneOf ['"']))
 
+crToken :: Parser Token
+crToken =
+  STRING (T.pack "\n") <$ (spaces *> string "CR" <* spaces)
+
 varToken :: Parser Token
 varToken =
   Var . T.pack <$> ((string "VARIABLE" <* spaces) >> (many1 alphaNum <* spaces))
@@ -237,6 +241,7 @@ allTokenParser =
     <|> try numToken
     <|> try tickToken
     <|> try (untilLoopToken <* untilToken)
+    <|> try crToken
     <|> try storeStrToken
     <|> try stringLitToken
     <|> try keyToken
@@ -273,6 +278,7 @@ tokenParser =
     <|> try allotToken
     <|> try cellsToken
     <|> try (untilLoopToken <* untilToken)
+    <|> try crToken
     <|> try storeStrToken
     <|> try stringLitToken
     <|> try keyToken
@@ -333,6 +339,8 @@ forthValParser' (COMMA : xs) parsed =
   forthValParser' xs (Mem CommaStore : parsed)
 forthValParser' (PRINT : STRING t : xs) parsed =
   forthValParser' xs (PrintStringLiteral t : parsed)
+forthValParser' (STRING "\n" : xs) parsed =
+  forthValParser' xs (PrintStringLiteral "\n" : parsed)
 forthValParser' (PRINT : xs) parsed =
   forthValParser' xs (PrintCommand : parsed)
 forthValParser' (KEY c : xs) parsed =
