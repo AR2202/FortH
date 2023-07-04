@@ -59,7 +59,7 @@ initialNames =
         "OR",
         "AND",
         "XOR",
-        "INVERT",
+        "NOT",
         "MOD",
         "I",
         "EXECUTE",
