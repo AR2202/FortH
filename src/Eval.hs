@@ -63,7 +63,7 @@ initialNames =
         "MOD",
         "I",
         "EXECUTE",
-        "EMIT"
+        "EMIT"       
       ]
       [0 ..]
 
@@ -141,6 +141,7 @@ eval env (DoLoop loop) = evalDoLoop env loop
 eval env (PlusLoop loop) = evalPlusLoop env loop
 eval env (UntilLoop loop) = evalUntilLoop env loop
 eval env (Variable varname) = evalVar env varname
+eval env (Mem StoreNext) = evalMemStoreNext env
 eval env (Mem Store) = evalMemStore env
 eval env (Mem Retrieve) = evalMemRetrieve env
 eval env (Mem Allot) = evalMemAllot env
@@ -178,6 +179,7 @@ evalType env = case stack env of
   [] -> Left StackUnderflow
   (x : xs) -> fetchStr x env {stack = xs} ""
 
+fetchStr :: (Eq t, Num t) => t -> Env -> [Char] -> Either ForthErr Env
 fetchStr 0 env s = Right $ env {printStr = L.reverse s : printStr env}
 fetchStr n env s = case evalDup env >>= evalMemRetrieve of
   Left err -> Left err
@@ -459,6 +461,14 @@ evalMemRetrieve env =
       case IM.lookup x (mem env) of
         Nothing -> Left MemoryAccessError
         Just retrieved -> Right $ env {stack = retrieved : zs}
+
+evalMemStoreNext :: Env -> Either ForthErr Env
+evalMemStoreNext env =
+  case stack env of
+    [] -> Left StackUnderflow
+    x : xs -> Right $ env {stack = nextMemAddr : xs, mem = IM.insert nextMemAddr x (mem env)}
+      where
+        nextMemAddr = IM.size (mem env) * memorycell env
 
 lookupAll :: Text -> Env -> Maybe [Int]
 lookupAll text env =

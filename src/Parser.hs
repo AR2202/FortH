@@ -229,6 +229,14 @@ sourceFileToken =
       (char '"')
       (many (noneOf ['"']))
 
+openFileToken :: Parser Token
+openFileToken =
+  OpenFile
+    <$> between
+      (string "OPEN-FILE \"")
+      (char '"')
+      (many (noneOf ['"']))
+
 allTokenParser :: Parser Token
 allTokenParser =
   try operatorToken
@@ -242,6 +250,8 @@ allTokenParser =
     <|> try tickToken
     <|> try (untilLoopToken <* untilToken)
     <|> try crToken
+    <|> try openFileToken
+    <|> try sourceFileToken
     <|> try storeStrToken
     <|> try stringLitToken
     <|> try keyToken
@@ -279,6 +289,7 @@ tokenParser =
     <|> try cellsToken
     <|> try (untilLoopToken <* untilToken)
     <|> try crToken
+    <|> try openFileToken
     <|> try storeStrToken
     <|> try stringLitToken
     <|> try keyToken
@@ -351,6 +362,8 @@ forthValParser' (STORESTR s : xs) parsed =
   forthValParser' xs (StoreString s : parsed)
 forthValParser' (EvalSource s : xs) parsed =
   forthValParser' xs (SourceFile s : parsed)
+forthValParser' (OpenFile s : xs) parsed =
+  forthValParser' xs (Forthvals [Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop] : parsed)
 forthValParser' _ _ = Left SyntaxError
 
 doLoopParser ::

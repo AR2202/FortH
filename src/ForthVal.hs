@@ -96,6 +96,7 @@ data MemoryOp
   | Allot
   | Cellsize
   | CommaStore
+  | StoreNext
   deriving (Show, Eq)
 
 type Names = Map.Map T.Text Int
@@ -149,4 +150,5 @@ data Token
   | TYPE
   | STORESTR String
   | EvalSource String
+  | OpenFile String
   deriving (Show, Eq)

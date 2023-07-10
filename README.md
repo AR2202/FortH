@@ -171,4 +171,12 @@ String literals can be printed with ."mystring"
 
 output: hello world
 
-When storing strings, they have to consist of ASCII characters. The characters of the string are converted to their ASCII codes and the string is stored as an array of ASCII characters.  When retrieving the string, e.g. for printing, the start address and the length have to be provided to the TYPE word.
+When storing strings, they have to consist of ASCII characters. The characters of the string are converted to their ASCII codes and the string is stored as an array of ASCII characters.  When retrieving the string, e.g. for printing, the start address and the length have to be provided to the TYPE word. S"mystring" saves mystring in memory and returns the address and length of the string on the stack. Immediately following by TYPE types the string to the terminal. If the string needs to be accessed later, both the address and the length need to be stored. 
+
+### Examples
+
+`S"hello world"`
+
+`TYPE`
+
+output: hello world
