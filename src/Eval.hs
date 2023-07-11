@@ -63,7 +63,9 @@ initialNames =
         "MOD",
         "I",
         "EXECUTE",
-        "EMIT"       
+        "EMIT",
+        "FILE-POSITION",
+        "READ-FILE"
       ]
       [0 ..]
 
@@ -96,7 +98,9 @@ initialDefs =
         Arith Mod,
         Forthvals [Number 0, Mem Retrieve],
         DictLookup,
-        Ascii
+        Ascii,
+        Forthvals [Mem Retrieve, Number 0],
+        ReadFile
       ]
 
 initialEnv :: Env
@@ -160,6 +164,9 @@ eval env (StoreString s) = evalStoreStr env s
 evalT :: Env -> ForthVal -> ExceptT ForthErr IO Env
 evalT env (SourceFile f) = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) (evalFile f >> return (Right env)) (\_ -> return (Left (FileNotFound f)))
 evalT env val = ExceptT $ return $ eval env val
+
+evalFileId :: Env -> Either ForthErr Env
+evalFileId env = evalNum env (memorycell env) >>= flip evalOp Add >>= evalDup >>= flip evalNum (memorycell env) >>= flip evalOp Add >>= evalSwap >>= evalMemRetrieve >>= evalType
 
 evalStoreStr :: Env -> String -> Either ForthErr Env
 evalStoreStr env s =
@@ -399,6 +406,7 @@ evalPlusLoop env loop =
         newenv = eval (env' {mem = addedIndex}) (Forthvals forthvals)
         addedIndex = IM.insert 0 index $ mem env'
 
+evalUntilLoop :: Env -> Loop -> Either ForthErr Env
 evalUntilLoop env loop = case eval env (Forthvals (loopbody loop)) of
   Left err -> Left err
   Right newenv -> case stack newenv of

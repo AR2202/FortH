@@ -49,6 +49,7 @@ data ForthVal
   | Type
   | StoreString String
   | SourceFile String
+  | ReadFile
   deriving (Show, Eq)
 
 newtype Loop = Loop

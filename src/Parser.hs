@@ -157,6 +157,9 @@ ploopToken = const THEN <$> (spaces *> string "+LOOP" <* spaces)
 untilToken :: Parser Token
 untilToken = const THEN <$> (spaces *> string "UNTIL" <* spaces)
 
+filePositionToken :: Parser Token
+filePositionToken = Ide . T.pack <$> (spaces *> string "FILE-POSITION" <* spaces)
+
 doLoopToken :: Parser Token
 doLoopToken =
   DOLOOP
@@ -239,7 +242,8 @@ openFileToken =
 
 allTokenParser :: Parser Token
 allTokenParser =
-  try operatorToken
+  try filePositionToken
+    <|> try operatorToken
     <|> try operatorORToken
     <|> try operatorAndToken
     <|> try dotToken
@@ -271,6 +275,7 @@ tokenParser :: Parser Token
 tokenParser =
   try funToken
     <|> try sourceFileToken
+    <|> try filePositionToken
     <|> try colonToken
     <|> try semicolonToken
     <|> try dotToken
@@ -363,7 +368,7 @@ forthValParser' (STORESTR s : xs) parsed =
 forthValParser' (EvalSource s : xs) parsed =
   forthValParser' xs (SourceFile s : parsed)
 forthValParser' (OpenFile s : xs) parsed =
-  forthValParser' xs (Forthvals [Number 0, Mem StoreNext, Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop, Manip Drop] : parsed)
+  forthValParser' xs (Forthvals [Number 0, Mem StoreNext, Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop, Manip Drop, Number 0] : parsed)
 forthValParser' _ _ = Left SyntaxError
 
 doLoopParser ::
