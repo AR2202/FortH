@@ -233,8 +233,8 @@ openFileToken :: Parser Token
 openFileToken =
   OpenFile
     <$> between
-      (string "OPEN-FILE \"")
-      (char '"')
+      (string "S\"")
+      (string "\" R/W OPEN-FILE" <|> string "\" R/O OPEN-FILE")
       (many (noneOf ['"']))
 
 allTokenParser :: Parser Token
@@ -363,7 +363,7 @@ forthValParser' (STORESTR s : xs) parsed =
 forthValParser' (EvalSource s : xs) parsed =
   forthValParser' xs (SourceFile s : parsed)
 forthValParser' (OpenFile s : xs) parsed =
-  forthValParser' xs (Forthvals [Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop] : parsed)
+  forthValParser' xs (Forthvals [Number 0, Mem StoreNext, Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop, Manip Drop] : parsed)
 forthValParser' _ _ = Left SyntaxError
 
 doLoopParser ::
@@ -436,6 +436,7 @@ ifelseParser iftokens elsetokens xs parsed =
         Right parseresultsElse ->
           forthValParser' xs (IfElse parseresults parseresultsElse : parsed)
 
+funParser :: [Token] -> [Token] -> [ForthVal] -> Either ForthErr [ForthVal]
 funParser funtokens xs parsed =
   case forthValParser funtokens of
     Left err -> Left err
