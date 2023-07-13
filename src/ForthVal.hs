@@ -152,4 +152,5 @@ data Token
   | STORESTR String
   | EvalSource String
   | OpenFile String
+  | READF
   deriving (Show, Eq)

@@ -160,6 +160,9 @@ untilToken = const THEN <$> (spaces *> string "UNTIL" <* spaces)
 filePositionToken :: Parser Token
 filePositionToken = Ide . T.pack <$> (spaces *> string "FILE-POSITION" <* spaces)
 
+readFileToken :: Parser Token
+readFileToken = const READF <$> (spaces *> string "READ-FILE" <* spaces)
+
 doLoopToken :: Parser Token
 doLoopToken =
   DOLOOP
@@ -243,6 +246,7 @@ openFileToken =
 allTokenParser :: Parser Token
 allTokenParser =
   try filePositionToken
+    <|> try readFileToken
     <|> try operatorToken
     <|> try operatorORToken
     <|> try operatorAndToken
@@ -275,6 +279,7 @@ tokenParser :: Parser Token
 tokenParser =
   try funToken
     <|> try sourceFileToken
+    <|> try readFileToken
     <|> try filePositionToken
     <|> try colonToken
     <|> try semicolonToken
@@ -331,6 +336,8 @@ forthValParser' (UNTILLOOP dotokens : xs) parsed =
   untilLoopParser dotokens xs parsed
 forthValParser' (NAME : (Ide t) : xs) parsed =
   forthValParser' xs (NameLookup t : parsed)
+forthValParser' (READF : xs) parsed =
+  forthValParser' xs (ReadFile : parsed)
 forthValParser' (Ide text : xs) parsed =
   forthValParser' xs (Word text : parsed)
 forthValParser' (Num text : xs) parsed =

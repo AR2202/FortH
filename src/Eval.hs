@@ -34,6 +34,7 @@ import Foreign.C (Errno (Errno))
 import ForthVal
 import Parser
 import System.IO.Error (ioeGetErrorType, isDoesNotExistErrorType)
+import Test.Hspec.Formatters (FailureRecord (failureRecordPath))
 
 initialNames :: Names
 initialNames =
@@ -64,8 +65,8 @@ initialNames =
         "I",
         "EXECUTE",
         "EMIT",
-        "FILE-POSITION",
-        "READ-FILE"
+        "FILE-POSITION"
+        
       ]
       [0 ..]
 
@@ -99,8 +100,8 @@ initialDefs =
         Forthvals [Number 0, Mem Retrieve],
         DictLookup,
         Ascii,
-        Forthvals [Mem Retrieve, Number 0],
-        ReadFile
+        Forthvals [Mem Retrieve, Number 0]
+        
       ]
 
 initialEnv :: Env
@@ -158,12 +159,23 @@ eval env Ascii = evalAscii env
 eval env (Key c) = evalKey env c
 eval env Type = evalType env
 eval env (StoreString s) = evalStoreStr env s
-
--- a test for ExceptT
+eval _ _ = Left ParseErr
 
 evalT :: Env -> ForthVal -> ExceptT ForthErr IO Env
 evalT env (SourceFile f) = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) (evalFile f >> return (Right env)) (\_ -> return (Left (FileNotFound f)))
+evalT env ReadFile = evalReadFile env
 evalT env val = ExceptT $ return $ eval env val
+
+evalReadFile :: Env -> ExceptT ForthErr IO Env
+evalReadFile env = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) ((evalReadFile2String . evalFileId) env) (\_ -> return (Left (FileNotFound (L.head $ printStr env))))
+
+evalReadFile2String :: Either ForthErr Env -> IO (Either ForthErr Env)
+evalReadFile2String (Right env) = do
+  contents <- readFile (L.head $ printStr env)
+  case stack env of
+    [] -> return (Left StackUnderflow)
+    (x : xs) -> return $ evalStoreStr (env {stack = xs, printStr = L.tail (printStr env)}) (L.take x contents)
+evalReadFile2String e = return e
 
 evalFileId :: Env -> Either ForthErr Env
 evalFileId env = evalNum env (memorycell env) >>= flip evalOp Add >>= evalDup >>= flip evalNum (memorycell env) >>= flip evalOp Add >>= evalSwap >>= evalMemRetrieve >>= evalType
