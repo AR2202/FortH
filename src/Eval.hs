@@ -66,7 +66,6 @@ initialNames =
         "EXECUTE",
         "EMIT",
         "FILE-POSITION"
-        
       ]
       [0 ..]
 
@@ -101,7 +100,6 @@ initialDefs =
         DictLookup,
         Ascii,
         Forthvals [Mem Retrieve, Number 0]
-        
       ]
 
 initialEnv :: Env
@@ -167,7 +165,7 @@ evalT env ReadFile = evalReadFile env
 evalT env val = ExceptT $ return $ eval env val
 
 evalReadFile :: Env -> ExceptT ForthErr IO Env
-evalReadFile env = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) ((evalReadFile2String . evalFileId) env) (\_ -> return (Left (FileNotFound (L.head $ printStr env))))
+evalReadFile env = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) ((evalReadFile2String . evalFileId) env) (\_ -> return (Left (FileNotFound "no such file")))
 
 evalReadFile2String :: Either ForthErr Env -> IO (Either ForthErr Env)
 evalReadFile2String (Right env) = do
