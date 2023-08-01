@@ -172,7 +172,9 @@ evalReadFile2String (Right env) = do
   contents <- readFile (L.head $ printStr env)
   case stack env of
     [] -> return (Left StackUnderflow)
-    (x : xs) -> return $ evalStoreStr (env {stack = xs, printStr = L.tail (printStr env)}) (L.take x contents)
+    (x : xs) -> do
+      print x
+      return $ evalStoreStr (env {stack = xs, printStr = L.tail (printStr env)}) (L.take x contents)
 evalReadFile2String e = return e
 
 evalFileId :: Env -> Either ForthErr Env
@@ -197,7 +199,7 @@ evalType env = case stack env of
   (x : xs) -> fetchStr x env {stack = xs} ""
 
 fetchStr :: (Eq t, Num t) => t -> Env -> [Char] -> Either ForthErr Env
-fetchStr 0 env s = Right $ env {printStr = L.reverse s : printStr env}
+fetchStr 0 env s = Right $ env {printStr = L.reverse s : printStr env, stack = L.tail $ stack env}
 fetchStr n env s = case evalDup env >>= evalMemRetrieve of
   Left err -> Left err
   Right env' -> case stack env' of
