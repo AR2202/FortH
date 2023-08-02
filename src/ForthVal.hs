@@ -50,6 +50,7 @@ data ForthVal
   | StoreString String
   | SourceFile String
   | ReadFile
+  | Recurse
   deriving (Show, Eq)
 
 newtype Loop = Loop

@@ -357,7 +357,7 @@ evalNameLookup env name =
 
 evalDef :: Env -> Fun -> Either ForthErr Env
 evalDef env fun =
-  case evalDefBody env (body fun) of
+  case evalDefBody env {stack = Map.size (names env) + 1 : stack env} (body fun) of
     Nothing -> Left UnknownWord
     Just forthvals ->
       Right $
@@ -494,7 +494,10 @@ lookupAll :: Text -> Env -> Maybe [Int]
 lookupAll text env =
   sequenceA $ Prelude.map (flip Map.lookup (names env)) $ T.split (== ' ') text
 
+evalDefComponents :: Env -> ForthVal -> Maybe ForthVal
 evalDefComponents env (Word text) = fmap Address $ Map.lookup text (names env)
+evalDefComponents env (IfElse ifvals elsevals) = IfElse <$> (evalDefBody env ifvals) <*> (evalDefBody env elsevals)
+evalDefComponents env Recurse = Just $ Address $ L.head $ stack env
 evalDefComponents env x = Just x
 
 evalDefBody :: Env -> [ForthVal] -> Maybe [ForthVal]

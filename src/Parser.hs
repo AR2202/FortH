@@ -338,6 +338,8 @@ forthValParser' (NAME : (Ide t) : xs) parsed =
   forthValParser' xs (NameLookup t : parsed)
 forthValParser' (READF : xs) parsed =
   forthValParser' xs (ReadFile : parsed)
+forthValParser' (Ide "RECURSE" : xs) parsed =
+  forthValParser' xs (Recurse : parsed)
 forthValParser' (Ide text : xs) parsed =
   forthValParser' xs (Word text : parsed)
 forthValParser' (Num text : xs) parsed =
