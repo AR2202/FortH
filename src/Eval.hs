@@ -496,6 +496,7 @@ lookupAll text env =
 
 evalDefComponents :: Env -> ForthVal -> Maybe ForthVal
 evalDefComponents env (Word text) = fmap Address $ Map.lookup text (names env)
+evalDefComponents env (If ifvals) = If <$> (evalDefBody env ifvals)
 evalDefComponents env (IfElse ifvals elsevals) = IfElse <$> (evalDefBody env ifvals) <*> (evalDefBody env elsevals)
 evalDefComponents env Recurse = Just $ Address $ L.head $ stack env
 evalDefComponents env x = Just x
