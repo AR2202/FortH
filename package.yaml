@@ -33,6 +33,9 @@ dependencies:
 - split
 - vector
 - transformers
+- lens
+- aeson
+- lens-aeson
 
 library:
   source-dirs: src

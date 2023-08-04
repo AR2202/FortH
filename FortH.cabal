@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bb59d947fdf829a4907f0a232e59e5a0632976162cd3618bddf07bb5330f008e
+-- hash: 53c8733a39a67af91ec82847509436ed49afd51b23f91d84c0e7f7ada3627e21
 
 name:           FortH
 version:        0.1.0.0
@@ -38,11 +38,14 @@ library
       src
   build-depends:
       QuickCheck
+    , aeson
     , base >=4.7 && <5
     , containers
     , generic-arbitrary
     , generic-random
     , hspec
+    , lens
+    , lens-aeson
     , mtl
     , parsec
     , parsec-numbers
@@ -62,11 +65,14 @@ executable FortH-exe
   build-depends:
       FortH
     , QuickCheck
+    , aeson
     , base >=4.7 && <5
     , containers
     , generic-arbitrary
     , generic-random
     , hspec
+    , lens
+    , lens-aeson
     , mtl
     , parsec
     , parsec-numbers
@@ -87,11 +93,14 @@ test-suite FortH-test
   build-depends:
       FortH
     , QuickCheck
+    , aeson
     , base >=4.7 && <5
     , containers
     , generic-arbitrary
     , generic-random
     , hspec
+    , lens
+    , lens-aeson
     , mtl
     , parsec
     , parsec-numbers

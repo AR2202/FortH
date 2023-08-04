@@ -1,4 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE InstanceSigs        #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module Eval
   ( initialDefs,
@@ -35,6 +43,7 @@ import ForthVal
 import Parser
 import System.IO.Error (ioeGetErrorType, isDoesNotExistErrorType)
 import Test.Hspec.Formatters (FailureRecord (failureRecordPath))
+import Control.Lens
 
 initialNames :: Names
 initialNames =
@@ -357,7 +366,7 @@ evalNameLookup env name =
 
 evalDef :: Env -> Fun -> Either ForthErr Env
 evalDef env fun =
-  case evalDefBody env {stack = Map.size (names env) + 1 : stack env} (body fun) of
+  case evalDefBody env {stack = Map.size (names env) + 1 : stack env} (_body fun) of
     Nothing -> Left UnknownWord
     Just forthvals ->
       Right $
@@ -367,7 +376,7 @@ evalDef env fun =
               IM.insert newaddress (Forthvals forthvals) (definitions env)
           }
       where
-        newword = name fun
+        newword =  fun^.name
         newaddress = Map.size (names env) + 1
 
 evalForthvals env forthvals = L.foldl' eval' (Right env) forthvals

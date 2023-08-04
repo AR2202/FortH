@@ -1,5 +1,13 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module ForthVal
   ( Env (..),
@@ -13,9 +21,12 @@ module ForthVal
     Fun (..),
     Token (..),
     Loop (..),
+    name,
+    body,
   )
 where
 
+import Control.Lens
 import Data.IntMap as IM
 import qualified Data.Map as Map
 import Data.Text as T
@@ -59,8 +70,8 @@ newtype Loop = Loop
   deriving (Show, Eq)
 
 data Fun = Fun
-  { name :: T.Text,
-    body :: [ForthVal]
+  { _name :: T.Text,
+    _body :: [ForthVal]
   }
   deriving (Show, Eq)
 
@@ -155,3 +166,5 @@ data Token
   | OpenFile String
   | READF
   deriving (Show, Eq)
+
+makeLenses ''Fun
