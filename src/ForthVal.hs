@@ -65,7 +65,7 @@ data ForthVal
   deriving (Show, Eq)
 
 newtype Loop = Loop
-  { loopbody :: [ForthVal]
+  { _loopbody :: [ForthVal]
   }
   deriving (Show, Eq)
 
@@ -167,5 +167,6 @@ data Token
   | OpenFile String
   | READF
   deriving (Show, Eq)
+
 
 makeLenses ''Fun

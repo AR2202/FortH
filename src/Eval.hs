@@ -1,12 +1,12 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE InstanceSigs        #-}
-{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Eval
   ( initialDefs,
@@ -31,6 +31,7 @@ where
 
 import ASCII
 import Control.Exception (AsyncException (StackOverflow), catchJust)
+import Control.Lens
 import Control.Monad.Except (ExceptT (..), catchError, runExceptT, throwError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
@@ -43,7 +44,6 @@ import ForthVal
 import Parser
 import System.IO.Error (ioeGetErrorType, isDoesNotExistErrorType)
 import Test.Hspec.Formatters (FailureRecord (failureRecordPath))
-import Control.Lens
 
 initialNames :: Names
 initialNames =
@@ -366,7 +366,7 @@ evalNameLookup env name =
 
 evalDef :: Env -> Fun -> Either ForthErr Env
 evalDef env fun =
-  case evalDefBody env {stack = Map.size (names env) + 1 : stack env} (_body fun) of
+  case evalDefBody env {stack = Map.size (names env) + 1 : stack env} (fun ^. body) of
     Nothing -> Left UnknownWord
     Just forthvals ->
       Right $
@@ -376,7 +376,7 @@ evalDef env fun =
               IM.insert newaddress (Forthvals forthvals) (definitions env)
           }
       where
-        newword =  fun^.name
+        newword = fun ^. name
         newaddress = Map.size (names env) + 1
 
 evalForthvals env forthvals = L.foldl' eval' (Right env) forthvals
@@ -405,7 +405,7 @@ evalDoLoop env loop =
   case stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    (x : y : zs) -> Right (env {mem = IM.insert 0 x (mem env), stack = zs}) >>= go x y (loopbody loop)
+    (x : y : zs) -> Right (env {mem = IM.insert 0 x (mem env), stack = zs}) >>= go x y (_loopbody loop)
   where
     go index stop forthvals env'
       | index >= stop = Right env'
@@ -416,7 +416,7 @@ evalPlusLoop env loop =
   case stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    (x : y : xs) -> Right (env {mem = IM.insert 0 x (mem env), stack = xs}) >>= go x y (loopbody loop)
+    (x : y : xs) -> Right (env {mem = IM.insert 0 x (mem env), stack = xs}) >>= go x y (_loopbody loop)
   where
     go index stop forthvals env' =
       case stack env' of
@@ -428,7 +428,7 @@ evalPlusLoop env loop =
         addedIndex = IM.insert 0 index $ mem env'
 
 evalUntilLoop :: Env -> Loop -> Either ForthErr Env
-evalUntilLoop env loop = case eval env (Forthvals (loopbody loop)) of
+evalUntilLoop env loop = case eval env (Forthvals (_loopbody loop)) of
   Left err -> Left err
   Right newenv -> case stack newenv of
     [] -> Left StackUnderflow
