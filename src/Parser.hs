@@ -221,7 +221,7 @@ stringLitToken =
 
 crToken :: Parser Token
 crToken =
-  STRING (T.pack "\n") <$ (spaces *> string "CR" <* spaces)
+  CR <$ (spaces *> string "CR" <* spaces)
 
 varToken :: Parser Token
 varToken =
@@ -362,10 +362,10 @@ forthValParser' (CELLS : xs) parsed =
   forthValParser' xs (Mem Cellsize : parsed)
 forthValParser' (COMMA : xs) parsed =
   forthValParser' xs (Mem CommaStore : parsed)
+forthValParser' (CR : xs) parsed =
+  forthValParser' xs (PrintStringLiteral "\n" : parsed)
 forthValParser' (PRINT : STRING t : xs) parsed =
   forthValParser' xs (PrintStringLiteral t : parsed)
-forthValParser' (STRING "\n" : xs) parsed =
-  forthValParser' xs (PrintStringLiteral "\n" : parsed)
 forthValParser' (PRINT : xs) parsed =
   forthValParser' xs (PrintCommand : parsed)
 forthValParser' (KEY c : xs) parsed =

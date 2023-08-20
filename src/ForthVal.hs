@@ -157,6 +157,7 @@ data Token
   | COMMA
   | PRINT
   | STRING T.Text
+  | CR
   | FUN [Token]
   | NAME
   | KEY Char
