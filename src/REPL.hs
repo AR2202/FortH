@@ -30,7 +30,7 @@ repl' env = do
 
       case evalResult of
         Left e -> print e >> repl' env
-        Right new -> putStrLn "ok" >> putStrLn ((Prelude.concat . Prelude.reverse . printStr) new) >> printF new >> repl' new {printStr = []}
+        Right new -> putStrLn "ok" >> putStrLn ((Prelude.concat . Prelude.reverse . _printStr) new) >> printF new >> repl' new {_printStr = []}
 
 repl :: IO ()
 repl = do

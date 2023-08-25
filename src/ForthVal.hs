@@ -23,6 +23,13 @@ module ForthVal
     Loop (..),
     name,
     body,
+    loopbody,
+    names,
+    definitions,
+    stack,
+    mem,
+    memorycell,
+    printStr,
   )
 where
 
@@ -117,12 +124,12 @@ type Names = Map.Map T.Text Int
 type Defs = IntMap ForthVal
 
 data Env = Env
-  { names :: Names,
-    definitions :: Defs,
-    stack :: [Int],
-    mem :: IntMap Int,
-    memorycell :: Int,
-    printStr :: [String]
+  { _names :: Names,
+    _definitions :: Defs,
+    _stack :: [Int],
+    _mem :: IntMap Int,
+    _memorycell :: Int,
+    _printStr :: [String]
   }
   deriving (Show, Eq)
 
@@ -168,5 +175,6 @@ data Token
   | READF
   deriving (Show, Eq)
 
-
 makeLenses ''Fun
+makeLenses ''Loop
+makeLenses ''Env
