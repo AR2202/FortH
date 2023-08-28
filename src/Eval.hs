@@ -124,13 +124,13 @@ printStack :: Env -> IO ()
 printStack env = mapM_ print $ L.reverse $ env ^. stack
 
 printDefs :: Env -> IO ()
-printDefs env = print $ env^.definitions
+printDefs env = print $ env ^. definitions
 
 printNames :: Env -> IO ()
-printNames env = print $ env^.names
+printNames env = print $ env ^. names
 
 printMem :: Env -> IO ()
-printMem env = print $ env^.mem
+printMem env = print $ env ^. mem
 
 eval :: Env -> ForthVal -> Either ForthErr Env
 eval env (Number x) = evalNum env x
@@ -178,16 +178,16 @@ evalReadFile env = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGet
 
 evalReadFile2String :: Either ForthErr Env -> IO (Either ForthErr Env)
 evalReadFile2String (Right env) = do
-  contents <- readFile (L.head $  env^.printStr)
+  contents <- readFile (L.head $ env ^. printStr)
   case _stack env of
     [] -> return (Left StackUnderflow)
     (x : xs) -> do
       print x
-      return $ evalStoreStr (env {_stack = xs, _printStr = L.tail (env ^. printStr)}) (L.take x contents)
+      return $ evalStoreStr (set stack xs $ over printStr L.tail env) (L.take x contents)
 evalReadFile2String e = return e
 
 evalFileId :: Env -> Either ForthErr Env
-evalFileId env = evalNum env (env^.memorycell) >>= flip evalOp Add >>= evalDup >>= flip evalNum (env^.memorycell) >>= flip evalOp Add >>= evalSwap >>= evalMemRetrieve >>= evalType
+evalFileId env = evalNum env (env ^. memorycell) >>= flip evalOp Add >>= evalDup >>= flip evalNum (env ^. memorycell) >>= flip evalOp Add >>= evalSwap >>= evalMemRetrieve >>= evalType
 
 evalStoreStr :: Env -> String -> Either ForthErr Env
 evalStoreStr env s =
@@ -205,7 +205,7 @@ evalStoreStr env s =
 evalType :: Env -> Either ForthErr Env
 evalType env = case _stack env of
   [] -> Left StackUnderflow
-  (x : xs) -> fetchStr x env {_stack = xs} ""
+  (x : xs) -> fetchStr x (over stack L.tail env) ""
 
 fetchStr :: (Eq t, Num t) => t -> Env -> [Char] -> Either ForthErr Env
 fetchStr 0 env s = Right $ env {_printStr = L.reverse s : env ^. printStr, _stack = L.tail $ env ^. stack}
@@ -216,36 +216,36 @@ fetchStr n env s = case evalDup env >>= evalMemRetrieve of
     [x] -> Left StackUnderflow
     (x : y : xs) -> case num2ascii x of
       Nothing -> Left NonAsciiCode
-      Just c -> fetchStr (n - 1) (env' {_stack = y + env^.memorycell : xs}) (c : s)
+      Just c -> fetchStr (n - 1) (env' {_stack = y + env ^. memorycell : xs}) (c : s)
 
 evalKey :: Env -> Char -> Either ForthErr Env
 evalKey env c = case ascii2num c of
   Nothing -> Left NonAsciiCode
-  Just n -> Right $ env {_stack = n : env ^. stack}
+  Just n -> Right $ over stack (n :) env
 
 evalAscii :: Env -> Either ForthErr Env
 evalAscii env = case _stack env of
   [] -> Left StackUnderflow
   (x : xs) -> case num2ascii x of
     Nothing -> Left NonAsciiCode
-    Just c -> Right $ env {_stack = xs, _printStr = return c : env ^. printStr}
+    Just c -> Right $ set stack xs $ over printStr (return c :) env
 
 evalNum :: Env -> Int -> Either ForthErr Env
-evalNum env x = Right env {_stack = x : env ^. stack}
+evalNum env x = Right $ over stack (x :) env
 
 evalNot :: Env -> Either ForthErr Env
 evalNot env =
   case _stack env of
     [] -> Left StackUnderflow
-    0 : xs -> Right $ env {_stack = 1 : xs}
-    x : xs -> Right $ env {_stack = 0 : xs}
+    0 : xs -> Right $ over stack (1 :) env
+    x : xs -> Right $ over stack (0 :) env
 
 evalOp :: Env -> Operator -> Either ForthErr Env
 evalOp env op =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    x : y : zs -> Right $ env {_stack = operation op y x : zs}
+    x : y : zs -> Right $ set stack (operation op y x : zs) env
 
 operation :: Operator -> (Int -> Int -> Int)
 operation Add = (+)
@@ -291,13 +291,13 @@ evalDup :: Env -> Either ForthErr Env
 evalDup env =
   case _stack env of
     [] -> Left StackUnderflow
-    (x : xs) -> Right $ env {_stack = x : x : xs}
+    (x : xs) -> Right $ over stack (x :) env
 
 evalDrop :: Env -> Either ForthErr Env
 evalDrop env =
   case _stack env of
     [] -> Left StackUnderflow
-    (x : xs) -> Right $ env {_stack = xs}
+    (x : xs) -> Right $ set stack xs env
 
 evalSwap :: Env -> Either ForthErr Env
 evalSwap env =
@@ -332,10 +332,10 @@ evalPrint :: Env -> Either ForthErr Env
 evalPrint env =
   case _stack env of
     [] -> Left StackUnderflow
-    (x : xs) -> Right $ env {_stack = xs, _printStr = show x : env^.printStr}
+    (x : xs) -> Right $ set stack xs $ over printStr (show x :) env
 
 evalPrintString :: Env -> T.Text -> Either ForthErr Env
-evalPrintString env t = Right $ env {_printStr = T.unpack t : env ^. printStr}
+evalPrintString env t = Right $ over printStr (T.unpack t :) env
 
 evalWord :: Env -> T.Text -> Either ForthErr Env
 evalWord env name =
@@ -356,17 +356,17 @@ evalLookup :: Env -> Either ForthErr Env
 evalLookup env =
   case _stack env of
     [] -> Left StackUnderflow
-    (x : xs) -> eval (env {_stack = xs}) (Address x)
+    (x : xs) -> eval (set stack xs env) (Address x)
 
 evalNameLookup :: Env -> T.Text -> Either ForthErr Env
 evalNameLookup env name =
-  case Map.lookup name (env^.names) of
+  case Map.lookup name (env ^. names) of
     Nothing -> Left UnknownWord
-    Just i -> Right $ env {_stack = i : env ^. stack}
+    Just i -> Right $ over stack (i :) env
 
 evalDef :: Env -> Fun -> Either ForthErr Env
 evalDef env fun =
-  case evalDefBody env {_stack = Map.size (env^.names) + 1 : env ^. stack} (fun ^. body) of
+  case evalDefBody (over stack (Map.size (env ^. names) + 1 :) env) (fun ^. body) of
     Nothing -> Left UnknownWord
     Just forthvals ->
       Right $
@@ -405,10 +405,11 @@ evalDoLoop env loop =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    (x : y : zs) -> Right (env {_mem = IM.insert 0 x (env ^. mem), _stack = zs}) >>= go x y (loop ^. loopbody)
+    (x : y : zs) -> Right (over mem (IM.insert 0 x) env) >>= go x y (loop ^. loopbody)
   where
     go index stop forthvals env'
       | index >= stop = Right env'
+      -- is this correct?
       | otherwise = eval (env' {_mem = IM.insert 0 index (env ^. mem)}) (Forthvals forthvals) >>= go (index + 1) stop forthvals
 
 evalPlusLoop :: Env -> Loop -> Either ForthErr Env
@@ -416,7 +417,7 @@ evalPlusLoop env loop =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    (x : y : xs) -> Right (env {_mem = IM.insert 0 x (env ^. mem), _stack = xs}) >>= go x y (loop ^. loopbody)
+    (x : y : xs) -> Right (set stack xs (over mem (IM.insert 0 x) env)) >>= go x y (loop ^. loopbody)
   where
     go index stop forthvals env' =
       case _stack env' of
@@ -432,8 +433,8 @@ evalUntilLoop env loop = case eval env (Forthvals (loop ^. loopbody)) of
   Left err -> Left err
   Right newenv -> case _stack newenv of
     [] -> Left StackUnderflow
-    (0 : xs) -> evalUntilLoop (newenv {_stack = xs}) loop
-    (x : xs) -> Right (newenv {_stack = xs})
+    (0 : xs) -> evalUntilLoop (set stack xs newenv) loop
+    (x : xs) -> Right (set stack xs newenv)
 
 evalVar :: Env -> T.Text -> Either ForthErr Env
 evalVar env varname =
