@@ -425,7 +425,7 @@ evalPlusLoop env loop =
         (0 : xs) -> Left SyntaxError
         (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index < stop) then Right env' else newenv >>= go (index + step) stop forthvals
       where
-        newenv = eval (env' {_mem = addedIndex}) (Forthvals forthvals)
+        newenv = eval (set mem addedIndex env') (Forthvals forthvals)
         addedIndex = IM.insert 0 index $ _mem env'
 
 evalUntilLoop :: Env -> Loop -> Either ForthErr Env
@@ -433,8 +433,8 @@ evalUntilLoop env loop = case eval env (Forthvals (loop ^. loopbody)) of
   Left err -> Left err
   Right newenv -> case _stack newenv of
     [] -> Left StackUnderflow
-    (0 : xs) -> evalUntilLoop (set stack xs newenv) loop
-    (x : xs) -> Right (set stack xs newenv)
+    (0 : xs) -> evalUntilLoop (dropStackTop newenv) loop
+    (x : xs) -> Right $ dropStackTop newenv
 
 evalVar :: Env -> T.Text -> Either ForthErr Env
 evalVar env varname =
@@ -453,7 +453,7 @@ evalMemStore env =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    x : y : zs -> Right $ env {_stack = zs, _mem = IM.insert x y (env ^. mem)}
+    x : y : zs -> Right $ dropStackTop . dropStackTop . save2Mem x y $ env
 
 evalMemComma :: Env -> Either ForthErr Env
 evalMemComma env =
@@ -490,7 +490,7 @@ evalMemRetrieve env =
     x : zs ->
       case IM.lookup x (env ^. mem) of
         Nothing -> Left MemoryAccessError
-        Just retrieved -> Right $ env {_stack = retrieved : zs}
+        Just retrieved -> Right $ pushToStack retrieved env
 
 evalMemStoreNext :: Env -> Either ForthErr Env
 evalMemStoreNext env =
@@ -502,7 +502,7 @@ evalMemStoreNext env =
 
 lookupAll :: Text -> Env -> Maybe [Int]
 lookupAll text env =
-  sequenceA $ Prelude.map (flip Map.lookup (env ^. names)) $ T.split (== ' ') text
+  traverse (`Map.lookup` (env ^. names)) $ T.split (== ' ') text
 
 evalDefComponents :: Env -> ForthVal -> Maybe ForthVal
 evalDefComponents env (Word text) = fmap Address $ Map.lookup text (env ^. names)
@@ -512,8 +512,8 @@ evalDefComponents env Recurse = Just $ Address $ L.head $ env ^. stack
 evalDefComponents env x = Just x
 
 evalDefBody :: Env -> [ForthVal] -> Maybe [ForthVal]
-evalDefBody env forthvals =
-  sequenceA $ Prelude.map (evalDefComponents env) forthvals
+evalDefBody env =
+  traverse (evalDefComponents env)
 
 evalInput :: String -> T.Text -> Env -> Either ForthErr Env
 evalInput filename text env =
@@ -564,3 +564,14 @@ evalFile filename = do
   contents <- readFile filename
   let text = T.unwords $ T.lines $ T.pack contents
   evalAndPrintStackTop filename text initialEnv
+
+-- helper functions for record updates with lenses
+
+dropStackTop :: Env -> Env
+dropStackTop = over stack L.tail
+
+pushToStack :: Int -> Env -> Env
+pushToStack i = over stack (i :)
+
+save2Mem :: Key -> Int -> Env -> Env
+save2Mem addr val = over mem (IM.insert addr val)
