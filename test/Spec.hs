@@ -22,24 +22,47 @@ main =
     describe "initialEnv" $ do
       it "should start with an empty stack" $ property prop_initial_stack_empty
       describe "initialDef" $ do
-        it "should contain +" $ initialDefs_addition_operator `shouldBe` True
+        it "should contain +" initialDefs_addition_operator
         describe "ideToken" $
           it "should return an identifier Token" $
-            parse ideToken "file" "aword" `shouldBe` Right (Ide "aword")
+            parseIdExists
         describe "eval" $
           it "pushes result on top of the stack" $
             stackState (eval envWithStackNumbers (Arith Add))
               `shouldBe` Right [3, 4]
         describe "eval" $
           context "when evaluating a definition" $
-            it "should insert the new word" $
-              eval initialEnv (Def (ForthVal.Fun "new" [Arith Add, Arith Times]))
-                `shouldSatisfy` env_contains_word "new"
+            it
+              "should insert the new word"
+              newWordInserted
         describe "eval" $
           context "when evaluating multiplication" $
             it "pushes result on top of the stack" $
-              stackState (eval envWithStackNumbers (Arith Times))
-                `shouldBe` Right [2, 4]
+              multiplyResultOnStack
+        describe "eval" $
+          context "when evaluating stack manipulation drop" $
+            it "drops top of the stack" $
+              stackDrop
+        describe "eval" $
+          context "when evaluating stack manipulation dup" $
+            it "duplicates top element of the stack" $
+              stackDup
+        describe "eval" $
+          context "when evaluating stack manipulation over" $
+            it "repeats top of the stack as 3rd element" $
+              stackOver
+        describe "eval" $
+          context "when trying to use an undefined word" $
+            it "throws UnknownWord error" $
+              unknownWordError
+        describe "eval" $
+          context "when defining a word and using it" $
+            it "executes the new word" $
+              definedWord
+
+---------Test for initial environment----------
+-----------------------------------------------
+-- Unit tests----------
 
 initialDefs_addition_operator :: Bool
 initialDefs_addition_operator =
@@ -50,8 +73,53 @@ initialDefs_addition_operator =
         Nothing -> False
         Just forthval -> forthval == Arith Add
 
+-- property based tests----------
+
+-- | test that initially the stack is empty
+-- and binary operators have a stack underflow error
 prop_initial_stack_empty :: Operator -> Bool
 prop_initial_stack_empty op = eval initialEnv (Arith op) == Left StackUnderflow
+
+-----------Tests for parsing----------
+--------------------------------------
+parseIdExists = parse ideToken "file" "aword" `shouldBe` Right (Ide "aword")
+
+-----------Tests for evaluation-------
+--------------------------------------
+newWordInserted =
+  eval initialEnv (Def (ForthVal.Fun "new" [Arith Add, Arith Times]))
+    `shouldSatisfy` env_contains_word "new"
+
+multiplyResultOnStack =
+  stackState (eval envWithStackNumbers (Arith Times))
+    `shouldBe` Right [2, 4]
+
+addResultOnStack =
+  stackState (eval envWithStackNumbers (Arith Add))
+    `shouldBe` Right [3, 4]
+
+stackDrop =
+  stackState (eval envWithStackNumbers (Manip Drop))
+    `shouldBe` Right [2, 4]
+
+stackDup =
+  stackState (eval envWithStackNumbers (Manip Dup))
+    `shouldBe` Right [1, 1, 2, 4]
+
+stackOver =
+  stackState (eval envWithStackNumbers (Manip Over))
+    `shouldBe` Right [1, 2, 1, 4]
+
+unknownWordError = eval initialEnv (Word "unkownWord") `shouldBe` Left UnknownWord
+
+definedWord =
+  stackState 
+      (envWithNewWord >>= (`eval` (Word "new"))
+  )
+    `shouldBe` Right [12]
+
+-----------Helper functions------------
+---------------------------------------
 
 env_contains_word :: T.Text -> Either ForthErr Env -> Bool
 env_contains_word _ (Left _) = False
@@ -62,3 +130,7 @@ envWithStackNumbers = Env initialNames initialDefs [1, 2, 4] (IM.singleton 0 0) 
 
 stackState :: Either ForthErr Env -> Either ForthErr [Int]
 stackState = fmap _stack
+
+stackTop = fmap L.head . stackState
+
+envWithNewWord = eval envWithStackNumbers (Def (ForthVal.Fun "new" [Arith Add, Arith Times]))
