@@ -390,15 +390,15 @@ evalIf :: Env -> [ForthVal] -> Either ForthErr Env
 evalIf env forthvals =
   case _stack env of
     [] -> Left StackUnderflow
-    0 : xs -> Right env
-    _ -> eval env (Forthvals forthvals)
+    0 : xs -> Right (dropStackTop env)
+    _ -> eval (dropStackTop env) (Forthvals forthvals)
 
 evalIfElse :: Env -> [ForthVal] -> [ForthVal] -> Either ForthErr Env
 evalIfElse env ifvals elsevals =
   case _stack env of
     [] -> Left StackUnderflow
-    0 : xs -> eval env (Forthvals elsevals)
-    _ -> eval env (Forthvals ifvals)
+    0 : xs -> eval (dropStackTop env) (Forthvals elsevals)
+    _ -> eval (dropStackTop env) (Forthvals ifvals)
 
 evalDoLoop :: Env -> Loop -> Either ForthErr Env
 evalDoLoop env loop =

@@ -43,6 +43,7 @@ import Generic.Random (genericArbitrary', uniform)
 import Test.QuickCheck (Arbitrary (..))
 import Test.QuickCheck.Arbitrary.Generic
 
+--Forth Values-------
 data ForthVal
   = Number Int
   | Word T.Text
@@ -71,17 +72,20 @@ data ForthVal
   | Recurse
   deriving (Show, Eq)
 
+-----Loop----
 newtype Loop = Loop
   { _loopbody :: [ForthVal]
   }
   deriving (Show, Eq)
 
+--Function definition---
 data Fun = Fun
   { _name :: T.Text,
     _body :: [ForthVal]
   }
   deriving (Show, Eq)
 
+--Arithmetic and Boolean opterators-----
 data Operator
   = Add
   | Sub
@@ -97,10 +101,12 @@ data Operator
   | Mod
   deriving (Show, Eq, Generic)
 
+--Arbitrary instance for Operator---
 instance Arbitrary Operator where
   arbitrary = genericArbitrary
   shrink = genericShrink
 
+--Stack Manipulation Commands---
 data StackManip
   = Dup
   | Drop
@@ -110,6 +116,7 @@ data StackManip
   | Invert
   deriving (Show, Eq)
 
+--Memory Operations-------
 data MemoryOp
   = Store
   | Retrieve
@@ -119,10 +126,12 @@ data MemoryOp
   | StoreNext
   deriving (Show, Eq)
 
+---Storage Dictionaries for function definitions-
 type Names = Map.Map T.Text Int
 
 type Defs = IntMap ForthVal
 
+--Program Environment------
 data Env = Env
   { _names :: Names,
     _definitions :: Defs,
@@ -133,6 +142,7 @@ data Env = Env
   }
   deriving (Show, Eq)
 
+--Error Types-
 data ForthErr
   = StackUnderflow
   | UnknownWord
@@ -144,6 +154,7 @@ data ForthErr
   | FileNotFound String
   deriving (Show, Read, Eq)
 
+--Token Types for Lexer-----
 data Token
   = Ide T.Text
   | Num T.Text
@@ -175,6 +186,7 @@ data Token
   | READF
   deriving (Show, Eq)
 
+--Template Haskell Lens creation----
 makeLenses ''Fun
 makeLenses ''Loop
 makeLenses ''Env
