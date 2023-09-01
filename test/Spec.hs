@@ -90,6 +90,21 @@ main =
             it
               "executes else if stack top is 0"
               elseExecutedIfFalse
+        describe "eval" $
+          context "when evaluating do loop" $
+            it
+              "executes from start to finish index"
+              doloopExecutedntimes
+        describe "eval" $
+          context "when evaluating do loop" $
+            it
+              "loppbody is executed"
+              doloopExecuted
+        describe "eval" $
+          context "when evaluating do loop with start and finish index equal" $
+            it
+              "loppbody is not executed"
+              doloopnotExecuted
 
 
 ---------Test for initial environment----------
@@ -118,57 +133,85 @@ parseIdExists = parse ideToken "file" "aword" `shouldBe` Right (Ide "aword")
 
 -----------Tests for evaluation-------
 --------------------------------------
+newWordInserted :: Expectation
 newWordInserted =
   eval initialEnv (Def (ForthVal.Fun "new" [Arith Add, Arith Times]))
     `shouldSatisfy` env_contains_word "new"
 
+multiplyResultOnStack :: Expectation
 multiplyResultOnStack =
   stackState (eval envWithStackNumbers (Arith Times))
     `shouldBe` Right [2, 4]
 
+addResultOnStack :: Expectation
 addResultOnStack =
   stackState (eval envWithStackNumbers (Arith Add))
     `shouldBe` Right [3, 4]
 
+stackDrop :: Expectation
 stackDrop =
   stackState (eval envWithStackNumbers (Manip Drop))
     `shouldBe` Right [2, 4]
 
+stackDup :: Expectation
 stackDup =
   stackState (eval envWithStackNumbers (Manip Dup))
     `shouldBe` Right [1, 1, 2, 4]
 
+stackOver :: Expectation
 stackOver =
   stackState (eval envWithStackNumbers (Manip Over))
     `shouldBe` Right [1, 2, 1, 4]
 
+unknownWordError :: Expectation
 unknownWordError = eval initialEnv (Word "unkownWord") `shouldBe` Left UnknownWord
 
+definedWord :: Expectation
 definedWord =
   stackState
     ( envWithNewWord >>= (`eval` Word "new")
     )
     `shouldBe` Right [12]
 
+addressExecuted :: Expectation
 addressExecuted =
   stackState (eval envWithStackNumbers (Address 0))
     `shouldBe` Right [3, 4]
 
+forthvalsAllExecuted :: Expectation
 forthvalsAllExecuted =
   stackState (eval envWithStackNumbers (Forthvals [Manip Drop, Manip Dup]))
     `shouldBe` Right [2, 2, 4]
 
+ifExecutedIfTrue :: Expectation
 ifExecutedIfTrue =
   stackState (eval envWithStackNumbers (If [Manip Drop, Manip Dup]))
     `shouldBe` Right [4, 4]
 
+ifNotExecutedIfFalse :: Expectation
 ifNotExecutedIfFalse =
   stackState (eval envWithStackTop0 (If [Manip Drop, Manip Dup]))
     `shouldBe` Right [1, 2, 4]
 
+elseExecutedIfFalse :: Expectation
 elseExecutedIfFalse =
   stackState (eval envWithStackTop0 (IfElse [Manip Drop, Manip Dup] [Number 10]))
     `shouldBe` Right [10, 1, 2, 4]
+
+doloopExecuted :: Expectation
+doloopExecuted =
+  stackState (eval envWithStackTop0 (DoLoop Loop {_loopbody = [Number 3]}))
+    `shouldBe` Right [3,  2, 4]
+
+doloopExecutedntimes :: Expectation
+doloopExecutedntimes =
+  stackState (eval envWithStackTop0 (Forthvals [Number 5, Number 0, DoLoop Loop {_loopbody = [Number 3]}]))
+    `shouldBe` Right [3, 3, 3, 3, 3, 0, 1, 2, 4]
+
+doloopnotExecuted :: Expectation
+doloopnotExecuted =
+  stackState (eval envWithStackTop0 (Forthvals [Number 0, DoLoop Loop {_loopbody = [Number 3]}]))
+    `shouldBe` Right [ 1, 2, 4]
 
 -----------Helper functions------------
 ---------------------------------------
@@ -186,6 +229,8 @@ envWithStackTop0 = Env initialNames initialDefs [0, 1, 2, 4] (IM.singleton 0 0) 
 stackState :: Either ForthErr Env -> Either ForthErr [Int]
 stackState = fmap _stack
 
+stackTop :: Either ForthErr Env -> Either ForthErr Int
 stackTop = fmap L.head . stackState
 
+envWithNewWord :: Either ForthErr Env
 envWithNewWord = eval envWithStackNumbers (Def (ForthVal.Fun "new" [Arith Add, Arith Times]))

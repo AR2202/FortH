@@ -379,6 +379,7 @@ evalDef env fun =
         newword = fun ^. name
         newaddress = Map.size (env ^. names) + 1
 
+evalForthvals :: Foldable t => Env -> t ForthVal -> Either ForthErr Env
 evalForthvals env forthvals = L.foldl' eval' (Right env) forthvals
   where
     eval' eEnv forthval =
@@ -405,7 +406,7 @@ evalDoLoop env loop =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    (x : y : zs) -> Right (over mem (IM.insert 0 x) env) >>= go x y (loop ^. loopbody)
+    (x : y : zs) -> Right (over mem (IM.insert 0 x)( (dropStackTop. dropStackTop )env)) >>= go x y (loop ^. loopbody)
   where
     go index stop forthvals env'
       | index >= stop = Right env'
