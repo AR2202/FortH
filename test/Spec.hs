@@ -105,6 +105,16 @@ main =
             it
               "loppbody is not executed"
               doloopnotExecuted
+        describe "eval" $
+          context "when evaluating plus loop" $
+            it
+              "loopbody is executed"
+              ploopExecuted
+        describe "eval" $
+          context "when evaluating plus loop" $
+            it
+              "increases the index by number on top of stack"
+              ploopIncreaseIndex
 
 
 ---------Test for initial environment----------
@@ -213,6 +223,16 @@ doloopnotExecuted =
   stackState (eval envWithStackTop0 (Forthvals [Number 0, DoLoop Loop {_loopbody = [Number 3]}]))
     `shouldBe` Right [ 1, 2, 4]
 
+
+ploopExecuted :: Expectation
+ploopExecuted =
+  stackState (eval envWithStackTop0 (PlusLoop Loop {_loopbody = [Number 1]}))
+    `shouldBe` Right [1,  2, 4]
+
+ploopIncreaseIndex :: Expectation
+ploopIncreaseIndex =
+  stackState (eval envWithStackNumbers (Forthvals [Number 5, Number 2, PlusLoop Loop {_loopbody = [ Number 2]}]))
+    `shouldBe` Right [2, 2,1, 2, 4]
 -----------Helper functions------------
 ---------------------------------------
 

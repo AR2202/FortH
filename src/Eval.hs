@@ -385,7 +385,7 @@ evalForthvals env forthvals = L.foldl' eval' (Right env) forthvals
     eval' eEnv forthval =
       case eEnv of
         Left error -> Left error
-        Right env -> eval env forthval
+        Right env' -> eval env' forthval
 
 evalIf :: Env -> [ForthVal] -> Either ForthErr Env
 evalIf env forthvals =
@@ -406,7 +406,7 @@ evalDoLoop env loop =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    (x : y : zs) -> Right (over mem (IM.insert 0 x)( (dropStackTop. dropStackTop )env)) >>= go x y (loop ^. loopbody)
+    (x : y : zs) -> Right (over mem (IM.insert 0 x) ((dropStackTop . dropStackTop) env)) >>= go x y (loop ^. loopbody)
   where
     go index stop forthvals env'
       | index >= stop = Right env'
@@ -418,16 +418,13 @@ evalPlusLoop env loop =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    (x : y : xs) -> Right (set stack xs (over mem (IM.insert 0 x) env)) >>= go x y (loop ^. loopbody)
+    (x : y : xs) -> Right (set stack xs env) >>= go x y (loop ^. loopbody)
   where
     go index stop forthvals env' =
       case _stack env' of
         [] -> Left StackUnderflow
         (0 : xs) -> Left SyntaxError
-        (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index < stop) then Right env' else newenv >>= go (index + step) stop forthvals
-      where
-        newenv = eval (set mem addedIndex env') (Forthvals forthvals)
-        addedIndex = IM.insert 0 index $ _mem env'
+        (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index <= stop) then Right env' else eval (save2Mem 0 index env') (Forthvals forthvals) >>= go (index + step) stop forthvals
 
 evalUntilLoop :: Env -> Loop -> Either ForthErr Env
 evalUntilLoop env loop = case eval env (Forthvals (loop ^. loopbody)) of
