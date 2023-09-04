@@ -103,8 +103,13 @@ main =
         describe "eval" $
           context "when evaluating do loop with start and finish index equal" $
             it
-              "loppbody is not executed"
+              "loopbody is not executed"
               doloopnotExecuted
+        describe "eval" $
+          context "when using I in do loop " $
+            it
+              "puts the current index on the stack"
+              indexPutOnStack
         describe "eval" $
           context "when evaluating plus loop" $
             it
@@ -223,6 +228,10 @@ doloopnotExecuted =
   stackState (eval envWithStackTop0 (Forthvals [Number 0, DoLoop Loop {_loopbody = [Number 3]}]))
     `shouldBe` Right [ 1, 2, 4]
 
+indexPutOnStack :: Expectation
+indexPutOnStack =
+  stackState (eval initialEnv (Forthvals [Number 5, Number 0, DoLoop Loop {_loopbody = [Word "I"]}]))
+    `shouldBe` Right [ 4,3,2,1,0]
 
 ploopExecuted :: Expectation
 ploopExecuted =

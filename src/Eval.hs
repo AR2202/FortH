@@ -105,7 +105,7 @@ initialDefs =
         Arith Xor,
         Arith Not,
         Arith Mod,
-        Forthvals [Number 0, Mem Retrieve],
+        Forthvals [Number 0, Mem Retrieve, Manip Swap, Manip Drop],
         DictLookup,
         Ascii,
         Forthvals [Mem Retrieve, Number 0]
