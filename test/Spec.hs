@@ -145,6 +145,17 @@ main =
             it
               "puts value assigned to variable on stack"
               variableCanBeAssignedAndRetrieved
+        describe "eval" $
+          context "when evaluating memory storage and retrieval" $
+            it
+              "does the same as the ! and @ words"
+              numCanBeStoredAndRetrieved
+        describe "eval" $
+          context "when evaluating cell allot" $
+            it
+              "allocates memory"
+              cellAllotInitializesMemory
+        
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -292,6 +303,14 @@ varExistsAfterInitialization = stackTail (eval initialEnv (Forthvals [Variable "
 
 variableCanBeAssignedAndRetrieved :: Expectation
 variableCanBeAssignedAndRetrieved = stackTop (eval initialEnv (Forthvals [Variable "myvar", Number 2, Word "myvar", Word "!", Word "myvar", Word "@"])) `shouldBe` Right 2
+
+-- Memory operations
+numCanBeStoredAndRetrieved :: Expectation
+numCanBeStoredAndRetrieved = stackTop (eval initialEnv (Forthvals [Variable "myvar", Number 2, Word "myvar", Mem Store, Word "myvar", Mem Retrieve])) `shouldBe` Right 2
+
+cellAllotInitializesMemory :: Expectation
+cellAllotInitializesMemory = stackState ((eval envWithStackNumbers (Mem Allot)) >>= (`eval` (Forthvals [Number 2, Mem Retrieve]))) `shouldBe` Right [0, 4]
+
 -----------Helper functions------------
 ---------------------------------------
 

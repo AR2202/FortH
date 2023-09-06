@@ -105,7 +105,7 @@ initialDefs =
         Arith Xor,
         Arith Not,
         Arith Mod,
-        Forthvals [Number 0, Mem Retrieve, Manip Swap, Manip Drop],
+        Forthvals [Number 0, Mem Retrieve],
         DictLookup,
         Ascii,
         Forthvals [Mem Retrieve, Number 0]
@@ -471,7 +471,7 @@ evalMemAllot env =
     [x] -> Left StackUnderflow
     x : y : zs -> Right $ env {_stack = zs, _mem = initializeMem xcells (env ^. mem)}
       where
-        xcells = L.map ((+ y) . (* env ^. memorycell)) [1 .. x]
+        xcells = L.map ((+ y) . (* env ^. memorycell)) [0 .. x - 1]
         initializeMem cells dict =
           L.foldl' (\acc key -> IM.insert key 0 acc) dict cells
 
@@ -488,7 +488,7 @@ evalMemRetrieve env =
     x : zs ->
       case IM.lookup x (env ^. mem) of
         Nothing -> Left MemoryAccessError
-        Just retrieved -> Right $ pushToStack retrieved env
+        Just retrieved -> Right $ pushToStack retrieved $ dropStackTop env
 
 evalMemStoreNext :: Env -> Either ForthErr Env
 evalMemStoreNext env =
