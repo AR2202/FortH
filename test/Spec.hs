@@ -18,54 +18,53 @@ import Text.ParserCombinators.Parsec.Char
 
 main :: IO ()
 main =
-  hspec $
+  hspec $ do
     -- Tests for environment initial setup
     -----------------------------------------
-    describe "initialEnv" $ do
-      it "should start with an empty stack" $ property prop_initial_stack_empty
+    propInitialStack
 
-      environmentInitialDef
-      -- Parsing Tests
-      ----------
+    environmentInitialDef
+    -- Parsing Tests
+    ----------
 
-      parseIdentifier
-      -- Tree-walk Interpreter Tests
-      -----------------------------
-      -- Arithmetic
-      evalMultiply
-      evalAdd
-      -- Stack manipulations
-      evalDup
-      evalOver
-      evalDrop
-      -- Definitions
-      evalDefinitions
-      evalUndefinedError
-      evalNewWord
-      -- Execution Token
-      evalExecutionToken
-      -- evaluating many Forth expressions
-      evalManyForthExpressions
-      -- If Else
-      evalIfExecutedIfTrue
-      evalIFNotExecutedIfFalse
-      evalElseExecuted
-      -- Loops
-      evalDooLoopnTimes
-      evalDoLoopExecuted
-      evalDoLoopNotExecuted
-      evalIndexInLoop
-      evalPlusLoopExecuted
-      evalPlusLoopIncreasesIndex
-      evalUntilLoopUntilTrue
-      evalUntilLoopStopCondition
-      -- Variable assignment Tests
-      evalUninitializedException
-      evalInitializeVar
-      evalAssignVar
-      -- Memory operation Tests
-      evalStoreRetrieve
-      evalCellAllot
+    parseIdentifier
+    -- Tree-walk Interpreter Tests
+    -----------------------------
+    -- Arithmetic
+    evalMultiply
+    evalAdd
+    -- Stack manipulations
+    evalDup
+    evalOver
+    evalDrop
+    -- Definitions
+    evalDefinitions
+    evalUndefinedError
+    evalNewWord
+    -- Execution Token
+    evalExecutionToken
+    -- evaluating many Forth expressions
+    evalManyForthExpressions
+    -- If Else
+    evalIfExecutedIfTrue
+    evalIFNotExecutedIfFalse
+    evalElseExecuted
+    -- Loops
+    evalDooLoopnTimes
+    evalDoLoopExecuted
+    evalDoLoopNotExecuted
+    evalIndexInLoop
+    evalPlusLoopExecuted
+    evalPlusLoopIncreasesIndex
+    evalUntilLoopUntilTrue
+    evalUntilLoopStopCondition
+    -- Variable assignment Tests
+    evalUninitializedException
+    evalInitializeVar
+    evalAssignVar
+    -- Memory operation Tests
+    evalStoreRetrieve
+    evalCellAllot
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -86,6 +85,10 @@ initialDefs_addition_operator =
 -- and binary operators have a stack underflow error
 prop_initial_stack_empty :: Operator -> Bool
 prop_initial_stack_empty op = eval initialEnv (Arith op) == Left StackUnderflow
+
+propInitialStack :: SpecWith ()
+propInitialStack = describe "initialEnv" $ do
+  it "should start with an empty stack" $ property prop_initial_stack_empty
 
 -----------Tests for parsing----------
 --------------------------------------
