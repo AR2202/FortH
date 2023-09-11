@@ -104,6 +104,7 @@ data Operator
 --Arbitrary instance for Operator---
 instance Arbitrary Operator where
   arbitrary = genericArbitrary
+  shrink :: Operator -> [Operator]
   shrink = genericShrink
 
 --Stack Manipulation Commands---

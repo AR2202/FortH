@@ -28,7 +28,7 @@ main =
     ----------
 
     parseIdentifier
-    -- Tree-walk Interpreter Tests
+    -- Tree-walk Interpreter (Eval) Tests
     -----------------------------
     -- Arithmetic
     evalMultiply
@@ -43,6 +43,9 @@ main =
     evalNewWord
     -- Execution Token
     evalExecutionToken
+    evalDictLookupEqAddress
+    evalNameLookup
+    evalNameLookupUnkownError
     -- evaluating many Forth expressions
     evalManyForthExpressions
     -- If Else
@@ -65,6 +68,19 @@ main =
     -- Memory operation Tests
     evalStoreRetrieve
     evalCellAllot
+    evalCommaStore
+    errorOnAccessingUninitializedMemory
+    errorOnAccessingMemoryWithoutAddress
+    -- print
+    evalPrintRemovedFromStack
+    evalPrintAppendedToPrintStr
+    evalPrintStringLitAppendedToPrintStr
+    -- ASCII
+    evalAsciiAppendedToPrintStr
+    evalNonAscii
+    evalAsciiCodeAOnStack
+    -- Strings
+    evalStoreAndTypeString
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -223,6 +239,45 @@ evalExecutionToken =
       it
         "executes the definition at the address"
         addressExecuted
+
+dictLookuplikeAddress :: Expectation
+dictLookuplikeAddress =
+  stackState (eval envWithStackNumbers (Address 0))
+    `shouldBe` stackState (eval envWithStackTop0 DictLookup)
+
+evalDictLookupEqAddress :: SpecWith ()
+evalDictLookupEqAddress =
+  describe "eval" $
+    context "when evaluating function definition lookup" $
+      it
+        "executes the definition at the address"
+        dictLookuplikeAddress
+
+nameLookupPlus :: Expectation
+nameLookupPlus =
+  stackState (eval envWithStackNumbers (NameLookup "+"))
+    `shouldBe` Right [0, 1, 2, 4]
+
+evalNameLookup :: SpecWith ()
+evalNameLookup =
+  describe "eval" $
+    context "when looking up execution token by name" $
+      it
+        "returns execution token on stack"
+        nameLookupPlus
+
+nameLookupUnknown :: Expectation
+nameLookupUnknown =
+  eval envWithStackNumbers (NameLookup "undefinedWord")
+    `shouldBe` Left UnknownWord
+
+evalNameLookupUnkownError :: SpecWith ()
+evalNameLookupUnkownError =
+  describe "eval" $
+    context "when looking up execution token of non existing word" $
+      it
+        "throws UnkownWord error"
+        nameLookupUnknown
 
 forthvalsAllExecuted :: Expectation
 forthvalsAllExecuted =
@@ -439,14 +494,138 @@ evalCellAllot =
         "allocates memory"
         cellAllotInitializesMemory
 
+commaStoreLeavesNewAddressOnStack :: Expectation
+commaStoreLeavesNewAddressOnStack = stackTop (eval envWithStackNumbers (Mem CommaStore)) `shouldBe` Right 3
+
+evalCommaStore :: SpecWith ()
+evalCommaStore =
+  describe "eval" $
+    context "when evaluating comma" $
+      it
+        "leaves the next memory address on the stack"
+        commaStoreLeavesNewAddressOnStack
+
+accessingUninitializedMemoryError :: Expectation
+accessingUninitializedMemoryError = eval envWithStackNumbers (Mem Retrieve) `shouldBe` Left MemoryAccessError
+
+errorOnAccessingUninitializedMemory :: SpecWith ()
+errorOnAccessingUninitializedMemory =
+  describe "eval"
+    $ context
+      "when accessing uninitialized and unwritten memory"
+    $ it
+      "throws MemoryAccessError"
+      accessingUninitializedMemoryError
+
+accessingMemoryWithoutAddressError :: Expectation
+accessingMemoryWithoutAddressError = eval initialEnv (Mem Retrieve) `shouldBe` Left StackUnderflow
+
+errorOnAccessingMemoryWithoutAddress :: SpecWith ()
+errorOnAccessingMemoryWithoutAddress =
+  describe "eval"
+    $ context
+      "when accessing memory with an empty stack"
+    $ it
+      "throws StackUnderFlowError"
+      accessingMemoryWithoutAddressError
+
 -- Environment
 -------------
 environmentInitialDef :: SpecWith ()
 environmentInitialDef = describe "initialDef" $ do
   it "should contain +" initialDefs_addition_operator
 
+-- printing
+-------------
+printCommandRemovesFromStack :: Expectation
+printCommandRemovesFromStack = stackState (eval envWithStackNumbers PrintCommand) `shouldBe` Right [2, 4]
+
+evalPrintRemovedFromStack :: SpecWith ()
+evalPrintRemovedFromStack =
+  describe "eval" $
+    context "when evaluating a print command" $
+      it
+        "removes the top element from the stack"
+        printCommandRemovesFromStack
+
+printCommandAppendsToPrintStr :: Expectation
+printCommandAppendsToPrintStr = printStrState (eval envWithStackNumbers PrintCommand) `shouldBe` Right ["1"]
+
+evalPrintAppendedToPrintStr :: SpecWith ()
+evalPrintAppendedToPrintStr =
+  describe "eval" $
+    context "when evaluating a print command" $
+      it
+        "Appends the top element of the stack to printStr"
+        printCommandAppendsToPrintStr
+
+printStrLitAppendsToPrintStr :: Expectation
+printStrLitAppendsToPrintStr = printStrState (eval envWithStackNumbers (PrintStringLiteral "string")) `shouldBe` Right ["string"]
+
+evalPrintStringLitAppendedToPrintStr :: SpecWith ()
+evalPrintStringLitAppendedToPrintStr =
+  describe "eval" $
+    context "when evaluating a print string literal command" $
+      it
+        "Appends the string literal to printStr"
+        printStrLitAppendsToPrintStr
+
+-- ASCII
+ascii0 :: Expectation
+ascii0 = printStrState (eval envWithStackTop0 Ascii) `shouldBe` Left NonAsciiCode
+
+evalNonAscii :: SpecWith ()
+evalNonAscii =
+  describe "eval" $
+    context "when evaluating an ascii code " $
+      it
+        "Appends the ascii character to printStr"
+        ascii0
+
+asciiA :: Expectation
+asciiA = printStrState (eval envWithStackTop65 Ascii) `shouldBe` Right ["A"]
+
+evalAsciiAppendedToPrintStr :: SpecWith ()
+evalAsciiAppendedToPrintStr =
+  describe "eval" $
+    context "when evaluating an ascii code " $
+      it
+        "Appends the ascii character to printStr"
+        asciiA
+
+asciiCodeA :: Expectation
+asciiCodeA = stackState (eval initialEnv (Key 'A')) `shouldBe` Right [65]
+
+evalAsciiCodeAOnStack :: SpecWith ()
+evalAsciiCodeAOnStack =
+  describe "eval" $
+    context "when evaluating an ascii Char A " $
+      it
+        "pushes the ascii code to the stack"
+        asciiCodeA
+
+-- storing and typing strings
+storeAndTypeString :: Expectation
+storeAndTypeString = printStrState ( envWithStringInMem>>=typeStringMem ) `shouldBe` Right ["a String"]
+
+evalStoreAndTypeString :: SpecWith ()
+evalStoreAndTypeString =
+  describe "eval" $
+    context "when storing a string in memory and then typing it" $
+      it
+        "pushes the string to the print stack"
+        storeAndTypeString
+
+
 -----------Helper functions------------
 ---------------------------------------
+
+envWithStringInMem :: Either ForthErr Env
+envWithStringInMem = eval initialEnv (StoreString "a String") 
+
+
+typeStringMem :: Env -> Either ForthErr Env
+typeStringMem env = eval env Type
 
 env_contains_word :: T.Text -> Either ForthErr Env -> Bool
 env_contains_word _ (Left _) = False
@@ -458,11 +637,17 @@ envWithStackNumbers = Env initialNames initialDefs [1, 2, 4] (IM.singleton 0 0) 
 envWithStackTop0 :: Env
 envWithStackTop0 = Env initialNames initialDefs [0, 1, 2, 4] (IM.singleton 0 0) 1 []
 
+envWithStackTop65 :: Env
+envWithStackTop65 = Env initialNames initialDefs [65, 1, 2, 4] (IM.singleton 0 0) 1 []
+
 stackState :: Either ForthErr Env -> Either ForthErr [Int]
 stackState = fmap _stack
 
 stackTop :: Either ForthErr Env -> Either ForthErr Int
 stackTop = fmap L.head . stackState
+
+printStrState :: Either ForthErr Env -> Either ForthErr [String]
+printStrState = fmap _printStr
 
 stackTail :: Either ForthErr Env -> Either ForthErr [Int]
 stackTail = fmap L.tail . stackState
