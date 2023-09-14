@@ -15,6 +15,7 @@ module Eval
     printF,
     printStack,
     eval,
+    evalT,
     evalAndPrintStackTop,
     evalInput,
     evalAndPrintStackTopRepl,

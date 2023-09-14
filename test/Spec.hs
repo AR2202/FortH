@@ -1,5 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- import           Text.Parsec.Expr
+{-# LANGUAGE OverloadedStrings #-}
 
+-- import           Text.Parsec.Expr
+import Control.Monad.Except (ExceptT (ExceptT), runExceptT)
 import Data.IntMap as IM
 import Data.List as L
 import qualified Data.Map as Map
@@ -10,7 +14,6 @@ import Parser
 import Test.Hspec
 import Test.QuickCheck
 import Text.Parsec
--- import           Text.Parsec.Expr
 import qualified Text.Parsec.Language as Lang
 import Text.Parsec.Text
 import qualified Text.Parsec.Token as Tok
@@ -37,6 +40,7 @@ main =
     evalDup
     evalOver
     evalDrop
+    evalDupExeption
     -- Definitions
     evalDefinitions
     evalUndefinedError
@@ -81,6 +85,11 @@ main =
     evalAsciiCodeAOnStack
     -- Strings
     evalStoreAndTypeString
+    -- Recursion
+    recurseIfTrue
+    -- evalT Monad transformer
+    evalSourceDoesNotExist
+    evalSource
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -225,6 +234,19 @@ evalOver =
       it
         "repeats top of the stack as 3rd element"
         stackOver
+
+stackDupEmptyStack :: Expectation
+stackDupEmptyStack =
+  stackState (eval initialEnv (Manip Dup))
+    `shouldBe` Left StackUnderflow
+
+evalDupExeption :: SpecWith ()
+evalDupExeption =
+  describe "eval" $
+    context "when evaluating stack manipulation dup on empty stack" $
+      it
+        "throws StackUnderFlow exception"
+        stackDupEmptyStack
 
 -- list of values
 addressExecuted :: Expectation
@@ -606,7 +628,7 @@ evalAsciiCodeAOnStack =
 
 -- storing and typing strings
 storeAndTypeString :: Expectation
-storeAndTypeString = printStrState ( envWithStringInMem>>=typeStringMem ) `shouldBe` Right ["a String"]
+storeAndTypeString = printStrState (envWithStringInMem >>= typeStringMem) `shouldBe` Right ["a String"]
 
 evalStoreAndTypeString :: SpecWith ()
 evalStoreAndTypeString =
@@ -616,13 +638,49 @@ evalStoreAndTypeString =
         "pushes the string to the print stack"
         storeAndTypeString
 
+-- Recursion
+recurseIF :: Expectation
+recurseIF =
+  stackState recurse
+    `shouldBe` Right [4]
+
+recurseIfTrue :: SpecWith ()
+recurseIfTrue =
+  describe "eval" $
+    context "when evaluating recursion inside If" $
+      it
+        "recurses while True"
+        recurseIF
+
+-- evaluate source file
+fileDoesNotExist :: Expectation
+fileDoesNotExist =
+  runExceptT (evalT initialEnv (SourceFile "nonExistentFile")) `shouldReturn` Left (FileNotFound "nonExistentFile")
+
+evalSourceDoesNotExist :: SpecWith ()
+evalSourceDoesNotExist =
+  describe "evalT" $
+    context "when evaluating a file that does not exits" $
+      it
+        "throws FileNotFound error"
+        fileDoesNotExist
+
+sourceFile :: Expectation
+sourceFile =
+  runExceptT (evalT initialEnv (SourceFile "test/testfile.forth")) `shouldReturn` Right initialEnv
+evalSource :: SpecWith ()
+evalSource =
+  describe "evalT" $
+    context "when evaluating a test source file " $
+      it
+        "reverts to previous state after evaluation"
+        sourceFile
 
 -----------Helper functions------------
 ---------------------------------------
 
 envWithStringInMem :: Either ForthErr Env
-envWithStringInMem = eval initialEnv (StoreString "a String") 
-
+envWithStringInMem = eval initialEnv (StoreString "a String")
 
 typeStringMem :: Env -> Either ForthErr Env
 typeStringMem env = eval env Type
@@ -654,3 +712,12 @@ stackTail = fmap L.tail . stackState
 
 envWithNewWord :: Either ForthErr Env
 envWithNewWord = eval envWithStackNumbers (Def (ForthVal.Fun "new" [Arith Add, Arith Times]))
+
+envForTestFile :: Either ForthErr Env
+envForTestFile = eval (initialEnv {_stack = [1]}) (Def (ForthVal.Fun "anewword" [Manip Swap, Arith Sub]))
+
+envWithRecursiveFunction :: Either ForthErr Env
+envWithRecursiveFunction = eval envWithStackNumbers (Def (ForthVal.Fun "rec" [If [Number 2, Arith Less, Recurse]]))
+
+recurse :: Either ForthErr Env
+recurse = envWithRecursiveFunction >>= (`eval` Word "rec")
