@@ -90,6 +90,7 @@ main =
     -- evalT Monad transformer
     evalSourceDoesNotExist
     evalSource
+    evalTwithPureValue
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -668,6 +669,7 @@ evalSourceDoesNotExist =
 sourceFile :: Expectation
 sourceFile =
   runExceptT (evalT initialEnv (SourceFile "test/testfile.forth")) `shouldReturn` Right initialEnv
+
 evalSource :: SpecWith ()
 evalSource =
   describe "evalT" $
@@ -675,6 +677,18 @@ evalSource =
       it
         "reverts to previous state after evaluation"
         sourceFile
+
+-- evalT with non- IO value
+evalTNoIO :: Expectation
+evalTNoIO = runExceptT (evalT initialEnv (Number 0)) `shouldReturn` Right initialEnv {_stack = [0]}
+
+evalTwithPureValue :: SpecWith ()
+evalTwithPureValue =
+  describe "evalT" $
+    context "when evaluated on a pure value" $
+      it
+        "wraps the result in ExceptT"
+        evalTNoIO
 
 -----------Helper functions------------
 ---------------------------------------
