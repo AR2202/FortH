@@ -209,7 +209,7 @@ evalType env = case _stack env of
   (x : xs) -> fetchStr x (over stack L.tail env) ""
 
 fetchStr :: (Eq t, Num t) => t -> Env -> [Char] -> Either ForthErr Env
-fetchStr 0 env s = Right $ env {_printStr = L.reverse s : env ^. printStr, _stack = L.tail $ env ^. stack}
+fetchStr 0 env s = Right $ dropStackTop $ pushToPrintStack (L.reverse s) env
 fetchStr n env s = case evalDup env >>= evalMemRetrieve of
   Left err -> Left err
   Right env' -> case _stack env' of
@@ -326,8 +326,8 @@ evalInvert :: Env -> Either ForthErr Env
 evalInvert env =
   case _stack env of
     [] -> Left StackUnderflow
-    0 : xs -> Right $ env {_stack = 1 : xs}
-    x : xs -> Right $ env {_stack = 0 : xs}
+    0 : xs -> Right $ invertStackTop env
+    x : xs -> Right $ invertStackTop env
 
 evalPrint :: Env -> Either ForthErr Env
 evalPrint env =
@@ -411,8 +411,7 @@ evalDoLoop env loop =
   where
     go index stop forthvals env'
       | index >= stop = Right env'
-      -- is this correct?
-      | otherwise = eval (env' {_mem = IM.insert 0 index (env ^. mem)}) (Forthvals forthvals) >>= go (index + 1) stop forthvals
+      | otherwise = eval (save2Mem 0 index env') (Forthvals forthvals) >>= go (index + 1) stop forthvals
 
 evalPlusLoop :: Env -> Loop -> Either ForthErr Env
 evalPlusLoop env loop =
@@ -572,5 +571,16 @@ dropStackTop = over stack L.tail
 pushToStack :: Int -> Env -> Env
 pushToStack i = over stack (i :)
 
+pushToPrintStack :: String -> Env -> Env
+pushToPrintStack s = over printStr (s :)
+
 save2Mem :: Key -> Int -> Env -> Env
 save2Mem addr val = over mem (IM.insert addr val)
+
+invertStackTop :: Env -> Env
+invertStackTop = over stack invertHead
+
+-- partial function
+invertHead :: (Eq a, Num a) => [a] -> [a]
+invertHead (0 : xs) = (1 : xs)
+invertHead (x : xs) = (0 : xs)
