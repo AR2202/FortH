@@ -459,8 +459,7 @@ evalMemComma env =
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
     x : y : zs ->
-      Right $
-        env {_stack = (y + env ^. memorycell) : zs, _mem = IM.insert y x (env ^. mem)}
+      Right $ save2Mem y x $ pushToStack (y + env ^. memorycell) env
 
 -- this function will allocate contiguous memory to the array at the memory location regardless of whether it is already written
 
@@ -479,7 +478,7 @@ evalMemCellsize :: Env -> Either ForthErr Env
 evalMemCellsize env =
   case _stack env of
     [] -> Left StackUnderflow
-    x : xs -> Right $ env {_stack = (x * env ^. memorycell) : xs}
+    x : xs -> Right $ pushToStack (x * env ^. memorycell) env
 
 evalMemRetrieve :: Env -> Either ForthErr Env
 evalMemRetrieve env =
@@ -494,7 +493,7 @@ evalMemStoreNext :: Env -> Either ForthErr Env
 evalMemStoreNext env =
   case _stack env of
     [] -> Left StackUnderflow
-    x : xs -> Right $ env {_stack = nextMemAddr : xs, _mem = IM.insert nextMemAddr x (env ^. mem)}
+    x : xs -> Right $ pushToStack nextMemAddr $ save2Mem nextMemAddr x env
       where
         nextMemAddr = IM.size (env ^. mem) * env ^. memorycell
 
@@ -582,5 +581,5 @@ invertStackTop = over stack invertHead
 
 -- partial function
 invertHead :: (Eq a, Num a) => [a] -> [a]
-invertHead (0 : xs) = (1 : xs)
-invertHead (x : xs) = (0 : xs)
+invertHead (0 : xs) = 1 : xs
+invertHead (x : xs) = 0 : xs

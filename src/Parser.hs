@@ -8,6 +8,7 @@ module Parser
     semicolonToken,
     tokenParser,
     tokensParser,
+    forthValParser,
     parseFromText,
     tokenizeFromText,
     forthValParser',

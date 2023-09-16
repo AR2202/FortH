@@ -29,7 +29,7 @@ main =
     environmentInitialDef
     -- Parsing Tests
     ----------
-
+    parseAdd
     parseIdentifier
     -- Tree-walk Interpreter (Eval) Tests
     -----------------------------
@@ -127,6 +127,17 @@ parseIdentifier =
     it
       "should return an identifier Token"
       parseIdExists
+
+tokenizeAndParseAdd :: Expectation
+tokenizeAndParseAdd = (parseFromText "test" "1 2 +") `shouldBe` Right [Number 1, Number 2, Word "+"]
+
+parseAdd :: SpecWith ()
+parseAdd =
+  describe "forthValParser" $
+    context "when run after tokensParser on + " $
+      it
+        "should return Right [Arith Add]"
+        tokenizeAndParseAdd
 
 -----------Tests for evaluation-------
 --------------------------------------
