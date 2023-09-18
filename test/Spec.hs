@@ -29,8 +29,24 @@ main =
     environmentInitialDef
     -- Parsing Tests
     ----------
+    -- Arithmetic
     parseAdd
+    -- identifiers
     parseIdentifier
+    -- loop
+    parseDoLoopWithI
+    parsePLoopWithI
+    parseUnclosedLoop
+    parseUntilLoop
+    parseErrUntilLoop
+    -- Definitions
+    parseDefWord
+    parseIncompleteDef
+    parseSingleSemicolon
+    -- IF
+    parseifVals
+    parseLoopInsideIf
+
     -- Tree-walk Interpreter (Eval) Tests
     -----------------------------
     -- Arithmetic
@@ -139,6 +155,117 @@ parseAdd =
         "should return Right [Arith Add]"
         tokenizeAndParseAdd
 
+-- loops
+doLoopWithI :: Expectation
+doLoopWithI = tokenizeAndParseTest "10 1 DO I . LOOP" `shouldBe` Right [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]
+
+parseDoLoopWithI :: SpecWith ()
+parseDoLoopWithI =
+  describe "parseFromText" $
+    context "when parsing a Do Loop with Index printing" $
+      it
+        "should parse it as a loop with Index and Print in the body"
+        doLoopWithI
+
+plusLoopWithI :: Expectation
+plusLoopWithI = tokenizeAndParseTest "10 1 DO I . +LOOP" `shouldBe` Right [Number 10, Number 1, PlusLoop Loop {_loopbody = [Word "I", PrintCommand]}]
+
+parsePLoopWithI :: SpecWith ()
+parsePLoopWithI =
+  describe "parseFromText" $
+    context "when parsing a Plus Loop with Index printing" $
+      it
+        "should parse it as a plus loop with Index and Print in the body"
+        plusLoopWithI
+
+untilLoopWithAdd :: Expectation
+untilLoopWithAdd = tokenizeAndParseTest "1 BEGIN 1 + DUP 10 = UNTIL" `shouldBe` Right [Number 1, UntilLoop Loop {_loopbody = [Number 1, Word "+", Word "DUP", Number 10, Word "="]}]
+
+parseUntilLoop :: SpecWith ()
+parseUntilLoop =
+  describe "parseFromText" $
+    context "when parsing an Until Loop with +" $
+      it
+        "should parse it as until loop with Add in the body"
+        untilLoopWithAdd
+
+untilLoopParseErr :: Expectation
+untilLoopParseErr = tokenizeAndParseTest "1 Do 1 + DUP 10 = UNTIL" `shouldBe` Left ParseErr
+
+parseErrUntilLoop :: SpecWith ()
+parseErrUntilLoop =
+  describe "parseFromText" $
+    context "when parsing an Until Loop beginning with DO insted of UNTIL" $
+      it
+        "should throw a ParseErr"
+        untilLoopParseErr
+
+incompleteLoopSyntaxError :: Expectation
+incompleteLoopSyntaxError = tokenizeAndParseTest "10 1 DO I ." `shouldBe` Left SyntaxError
+
+parseUnclosedLoop :: SpecWith ()
+parseUnclosedLoop =
+  describe "parseFromText" $
+    context "when parsing an unterminated Loop " $
+      it
+        "should throw a SyntaxError"
+        incompleteLoopSyntaxError
+
+-- Definitions
+defNewWord :: Expectation
+defNewWord = tokenizeAndParseTest " : anewword SWAP - ; " `shouldBe` Right [Def (ForthVal.Fun "anewword" [Word "SWAP", Word "-"])]
+
+parseDefWord :: SpecWith ()
+parseDefWord =
+  describe "parseFromText" $
+    context "when parsing a function definition" $
+      it
+        "should parse it as a function with definition in the body"
+        defNewWord
+
+unclosedDef :: Expectation
+unclosedDef = tokenizeAndParseTest " : anewword SWAP -  " `shouldBe` Left SyntaxError
+
+parseIncompleteDef :: SpecWith ()
+parseIncompleteDef =
+  describe "parseFromText" $
+    context "when parsing an unterminated function definition" $
+      it
+        "should throw a SyntaxError"
+        unclosedDef
+
+singleSemicolon :: Expectation
+singleSemicolon = tokenizeAndParseTest " anewword ; " `shouldBe` Left SyntaxError
+
+parseSingleSemicolon :: SpecWith ()
+parseSingleSemicolon =
+  describe "parseFromText" $
+    context "when trying to parse a semicolon without an opening colon" $
+      it
+        "should throw a SyntazError"
+        singleSemicolon
+
+-- IF
+ifvalsParsed :: Expectation
+ifvalsParsed = tokenizeAndParseTest " IF 2 + THEN" `shouldBe` Right [If [Number 2, Word "+"]]
+
+parseifVals :: SpecWith ()
+parseifVals =
+  describe "parseFromText" $
+    context "when parsing if" $
+      it
+        "should have the body inside the if statement"
+        ifvalsParsed
+loopInsideIf :: Expectation
+loopInsideIf = tokenizeAndParseTest " IF 10 1 DO I . LOOP THEN" `shouldBe` Right [If [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]
+
+parseLoopInsideIf :: SpecWith ()
+parseLoopInsideIf =
+  describe "parseFromText" $
+    context "when parsing a do loop inside an if statement" $
+      it
+        "should have the loop inside the if statement"
+        loopInsideIf
 -----------Tests for evaluation-------
 --------------------------------------
 -- defining new words
@@ -746,3 +873,6 @@ envWithRecursiveFunction = eval envWithStackNumbers (Def (ForthVal.Fun "rec" [If
 
 recurse :: Either ForthErr Env
 recurse = envWithRecursiveFunction >>= (`eval` Word "rec")
+
+tokenizeAndParseTest :: Text -> Either ForthErr [ForthVal]
+tokenizeAndParseTest = parseFromText "test"
