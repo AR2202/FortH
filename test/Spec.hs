@@ -46,6 +46,9 @@ main =
     -- IF
     parseifVals
     parseLoopInsideIf
+    parseIFInsideIf
+    parseIFInsideElse
+    parseDoLoopWithIF
 
     -- Tree-walk Interpreter (Eval) Tests
     -----------------------------
@@ -167,6 +170,17 @@ parseDoLoopWithI =
         "should parse it as a loop with Index and Print in the body"
         doLoopWithI
 
+ifInsidedoLoop :: Expectation
+ifInsidedoLoop = tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP" `shouldBe` Right [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I",  Number 3, Word "=",If[PrintStringLiteral "equal to 3"]]}]
+
+parseDoLoopWithIF :: SpecWith ()
+parseDoLoopWithIF =
+  describe "parseFromText" $
+    context "when parsing a Do Loop with an If statement" $
+      it
+        "should parse it as a loop with the if in the body"
+        ifInsidedoLoop
+
 plusLoopWithI :: Expectation
 plusLoopWithI = tokenizeAndParseTest "10 1 DO I . +LOOP" `shouldBe` Right [Number 10, Number 1, PlusLoop Loop {_loopbody = [Word "I", PrintCommand]}]
 
@@ -266,6 +280,27 @@ parseLoopInsideIf =
       it
         "should have the loop inside the if statement"
         loopInsideIf
+
+ifInsideIf :: Expectation
+ifInsideIf = tokenizeAndParseTest " IF IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [If [If[Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
+
+parseIFInsideIf :: SpecWith ()
+parseIFInsideIf =
+  describe "parseFromText" $
+    context "when parsing an if statement inside an if statement" $
+      it
+        "should have the second if inside the first if statement"
+        ifInsideIf
+ifInsideElse :: Expectation
+ifInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [IfElse [Number 1] [If[Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
+
+parseIFInsideElse :: SpecWith ()
+parseIFInsideElse =
+  describe "parseFromText" $
+    context "when parsing an if statement inside an else block" $
+      it
+        "should have the second if inside the else block"
+        ifInsideElse
 -----------Tests for evaluation-------
 --------------------------------------
 -- defining new words
