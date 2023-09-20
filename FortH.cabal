@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 53c8733a39a67af91ec82847509436ed49afd51b23f91d84c0e7f7ada3627e21
+-- hash: 75a0f3eeb08d9bb4622bd29f79214272f9964d0610dcc210dbb7caa14a5cb6e5
 
 name:           FortH
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       ForthVal
       Parser
       REPL
+      Transpiler
   other-modules:
       Paths_FortH
   hs-source-dirs:
