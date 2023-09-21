@@ -18,98 +18,103 @@ import qualified Text.Parsec.Language as Lang
 import Text.Parsec.Text
 import qualified Text.Parsec.Token as Tok
 import Text.ParserCombinators.Parsec.Char
+import Transpiler
 
 main :: IO ()
 main =
-  hspec $ do
-    -- Tests for environment initial setup
-    -----------------------------------------
-    propInitialStack
+  hspec $
+    do
+      -- Tests for environment initial setup
+      -----------------------------------------
+      propInitialStack
 
-    environmentInitialDef
-    -- Parsing Tests
-    ----------
-    -- Arithmetic
-    parseAdd
-    -- identifiers
-    parseIdentifier
-    -- loop
-    parseDoLoopWithI
-    parsePLoopWithI
-    parseUnclosedLoop
-    parseUntilLoop
-    parseErrUntilLoop
-    -- Definitions
-    parseDefWord
-    parseIncompleteDef
-    parseSingleSemicolon
-    -- IF
-    parseifVals
-    parseLoopInsideIf
-    parseIFInsideIf
-    parseIFInsideElse
-    parseDoLoopWithIF
+      environmentInitialDef
+      -- Parsing Tests
+      ----------
+      -- Arithmetic
+      parseAdd
+      -- identifiers
+      parseIdentifier
+      -- loop
+      parseDoLoopWithI
+      parsePLoopWithI
+      parseUnclosedLoop
+      parseUntilLoop
+      parseErrUntilLoop
+      -- Definitions
+      parseDefWord
+      parseIncompleteDef
+      parseSingleSemicolon
+      -- IF
+      parseifVals
+      parseLoopInsideIf
+      parseIFInsideIf
+      parseIFInsideElse
+      parseDoLoopWithIF
 
-    -- Tree-walk Interpreter (Eval) Tests
-    -----------------------------
-    -- Arithmetic
-    evalMultiply
-    evalAdd
-    -- Stack manipulations
-    evalDup
-    evalOver
-    evalDrop
-    evalDupExeption
-    -- Definitions
-    evalDefinitions
-    evalUndefinedError
-    evalNewWord
-    -- Execution Token
-    evalExecutionToken
-    evalDictLookupEqAddress
-    evalNameLookup
-    evalNameLookupUnkownError
-    -- evaluating many Forth expressions
-    evalManyForthExpressions
-    -- If Else
-    evalIfExecutedIfTrue
-    evalIFNotExecutedIfFalse
-    evalElseExecuted
-    -- Loops
-    evalDooLoopnTimes
-    evalDoLoopExecuted
-    evalDoLoopNotExecuted
-    evalIndexInLoop
-    evalPlusLoopExecuted
-    evalPlusLoopIncreasesIndex
-    evalUntilLoopUntilTrue
-    evalUntilLoopStopCondition
-    -- Variable assignment Tests
-    evalUninitializedException
-    evalInitializeVar
-    evalAssignVar
-    -- Memory operation Tests
-    evalStoreRetrieve
-    evalCellAllot
-    evalCommaStore
-    errorOnAccessingUninitializedMemory
-    errorOnAccessingMemoryWithoutAddress
-    -- print
-    evalPrintRemovedFromStack
-    evalPrintAppendedToPrintStr
-    evalPrintStringLitAppendedToPrintStr
-    -- ASCII
-    evalAsciiAppendedToPrintStr
-    evalNonAscii
-    evalAsciiCodeAOnStack
-    -- Strings
-    evalStoreAndTypeString
-    -- Recursion
-    recurseIfTrue
-    -- evalT Monad transformer
-    evalSourceDoesNotExist
-    evalSource
-    evalTwithPureValue
+      -- Tree-walk Interpreter (Eval) Tests
+      -----------------------------
+      -- Arithmetic
+      evalMultiply
+      evalAdd
+      -- Stack manipulations
+      evalDup
+      evalOver
+      evalDrop
+      evalDupExeption
+      -- Definitions
+      evalDefinitions
+      evalUndefinedError
+      evalNewWord
+      -- Execution Token
+      evalExecutionToken
+      evalDictLookupEqAddress
+      evalNameLookup
+      evalNameLookupUnkownError
+      -- evaluating many Forth expressions
+      evalManyForthExpressions
+      -- If Else
+      evalIfExecutedIfTrue
+      evalIFNotExecutedIfFalse
+      evalElseExecuted
+      -- Loops
+      evalDooLoopnTimes
+      evalDoLoopExecuted
+      evalDoLoopNotExecuted
+      evalIndexInLoop
+      evalPlusLoopExecuted
+      evalPlusLoopIncreasesIndex
+      evalUntilLoopUntilTrue
+      evalUntilLoopStopCondition
+      -- Variable assignment Tests
+      evalUninitializedException
+      evalInitializeVar
+      evalAssignVar
+      -- Memory operation Tests
+      evalStoreRetrieve
+      evalCellAllot
+      evalCommaStore
+      errorOnAccessingUninitializedMemory
+      errorOnAccessingMemoryWithoutAddress
+      -- print
+      evalPrintRemovedFromStack
+      evalPrintAppendedToPrintStr
+      evalPrintStringLitAppendedToPrintStr
+      -- ASCII
+      evalAsciiAppendedToPrintStr
+      evalNonAscii
+      evalAsciiCodeAOnStack
+      -- Strings
+      evalStoreAndTypeString
+      -- Recursion
+      recurseIfTrue
+      -- evalT Monad transformer
+      evalSourceDoesNotExist
+      evalSource
+      evalTwithPureValue
+      -- Tests for Transpiler
+      ------------------------
+      transpileAddAndSubtract
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -171,7 +176,7 @@ parseDoLoopWithI =
         doLoopWithI
 
 ifInsidedoLoop :: Expectation
-ifInsidedoLoop = tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP" `shouldBe` Right [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I",  Number 3, Word "=",If[PrintStringLiteral "equal to 3"]]}]
+ifInsidedoLoop = tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP" `shouldBe` Right [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", Number 3, Word "=", If [PrintStringLiteral "equal to 3"]]}]
 
 parseDoLoopWithIF :: SpecWith ()
 parseDoLoopWithIF =
@@ -270,6 +275,7 @@ parseifVals =
       it
         "should have the body inside the if statement"
         ifvalsParsed
+
 loopInsideIf :: Expectation
 loopInsideIf = tokenizeAndParseTest " IF 10 1 DO I . LOOP THEN" `shouldBe` Right [If [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]
 
@@ -282,7 +288,7 @@ parseLoopInsideIf =
         loopInsideIf
 
 ifInsideIf :: Expectation
-ifInsideIf = tokenizeAndParseTest " IF IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [If [If[Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
+ifInsideIf = tokenizeAndParseTest " IF IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [If [If [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
 
 parseIFInsideIf :: SpecWith ()
 parseIFInsideIf =
@@ -291,8 +297,9 @@ parseIFInsideIf =
       it
         "should have the second if inside the first if statement"
         ifInsideIf
+
 ifInsideElse :: Expectation
-ifInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [IfElse [Number 1] [If[Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
+ifInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [IfElse [Number 1] [If [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
 
 parseIFInsideElse :: SpecWith ()
 parseIFInsideElse =
@@ -301,6 +308,7 @@ parseIFInsideElse =
       it
         "should have the second if inside the else block"
         ifInsideElse
+
 -----------Tests for evaluation-------
 --------------------------------------
 -- defining new words
@@ -862,6 +870,20 @@ evalTwithPureValue =
       it
         "wraps the result in ExceptT"
         evalTNoIO
+
+--------------------------------------
+-- Transpiler Tests
+---------------------------------------
+subtractAfterAdd :: Expectation
+subtractAfterAdd = parseTranspileGenerateOutputFromText " 1 2 + 3 -" `shouldBe` "(2 + 1) - 3"
+
+transpileAddAndSubtract :: SpecWith()
+transpileAddAndSubtract =
+  describe "parseTranspileOutputFromText" $
+    context "when transpiling and arithmetic expression" $
+      it
+        "respects the order of operations"
+        subtractAfterAdd
 
 -----------Helper functions------------
 ---------------------------------------
