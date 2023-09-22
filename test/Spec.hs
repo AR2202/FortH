@@ -688,7 +688,7 @@ evalStoreRetrieve =
         numCanBeStoredAndRetrieved
 
 cellAllotInitializesMemory :: Expectation
-cellAllotInitializesMemory = stackState ((eval envWithStackNumbers (Mem Allot)) >>= (`eval` (Forthvals [Number 2, Mem Retrieve]))) `shouldBe` Right [0, 4]
+cellAllotInitializesMemory = stackState (eval envWithStackNumbers (Mem Allot) >>= (`eval` Forthvals [Number 2, Mem Retrieve])) `shouldBe` Right [0, 4]
 
 evalCellAllot :: SpecWith ()
 evalCellAllot =
@@ -875,7 +875,7 @@ evalTwithPureValue =
 -- Transpiler Tests
 ---------------------------------------
 subtractAfterAdd :: Expectation
-subtractAfterAdd = parseTranspileGenerateOutputFromText " 1 2 + 3 -" `shouldBe` "(2 + 1) - 3"
+subtractAfterAdd = parseTranspileGenerateOutputFromText " 1 2 + 3 -" `shouldBe` "(1 + 2) - 3\n"
 
 transpileAddAndSubtract :: SpecWith()
 transpileAddAndSubtract =
