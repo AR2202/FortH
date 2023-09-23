@@ -45,12 +45,15 @@ main =
       parseDefWord
       parseIncompleteDef
       parseSingleSemicolon
+      parseifInsideDef
+      parseRecInsideDef
       -- IF
       parseifVals
       parseLoopInsideIf
       parseIFInsideIf
       parseIFInsideElse
       parseDoLoopWithIF
+      parseIFElseInsideElse
 
       -- Tree-walk Interpreter (Eval) Tests
       -----------------------------
@@ -264,6 +267,26 @@ parseSingleSemicolon =
         "should throw a SyntazError"
         singleSemicolon
 
+ifInsideDef :: Expectation
+ifInsideDef = tokenizeAndParseTest " : afunction 3 = IF .\"equal to 3\" THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "afunction" [Number 3, Word "=", If[PrintStringLiteral "equal to 3"]])]
+
+parseifInsideDef :: SpecWith ()
+parseifInsideDef =
+  describe "parseFromText" $
+    context "when parsing an if statement in a function definition" $
+      it
+        "should parse it as a definition with the if in the body"
+        ifInsideDef
+recurseInsideDef :: Expectation
+recurseInsideDef = tokenizeAndParseTest " : arecursivefunction DUP 3 < IF 1 + RECURSE THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "arecursivefunction" [Word "DUP", Number 3, Word "<", If[Number 1, Word "+", Recurse]])]
+
+parseRecInsideDef :: SpecWith ()
+parseRecInsideDef =
+  describe "parseFromText" $
+    context "when parsing recursion in a function definition" $
+      it
+        "should parse it as a definition with the Recurse word in the body"
+        recurseInsideDef
 -- IF
 ifvalsParsed :: Expectation
 ifvalsParsed = tokenizeAndParseTest " IF 2 + THEN" `shouldBe` Right [If [Number 2, Word "+"]]
@@ -309,6 +332,17 @@ parseIFInsideElse =
         "should have the second if inside the else block"
         ifInsideElse
 
+
+ifElseInsideElse :: Expectation
+ifElseInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP ELSE 2 . THEN THEN" `shouldBe` Right [IfElse [Number 1] [IfElse [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}][Number 2, PrintCommand]]]
+
+parseIFElseInsideElse :: SpecWith ()
+parseIFElseInsideElse =
+  describe "parseFromText" $
+    context "when parsing an if else statement inside an else block" $
+      it
+        "should have the second if else inside the else block"
+        ifElseInsideElse
 -----------Tests for evaluation-------
 --------------------------------------
 -- defining new words
