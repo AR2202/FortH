@@ -21,8 +21,13 @@ import Parser
 import System.FilePath.Lens (filename)
 import Test.Hspec (xcontext)
 
-data ExpressionTree = Lit Int | Addition ExpressionTree ExpressionTree | Subtract ExpressionTree ExpressionTree | Multiply ExpressionTree ExpressionTree | IntDiv ExpressionTree ExpressionTree | Print ExpressionTree deriving (Show, Read, Eq)
+data ExpressionTree = Exp ArithExpression | Prt PrintExpression deriving (Show, Read, Eq)
 
+data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression deriving (Show, Read, Eq)
+
+data PrintExpression = Print ArithExpression | PrintLit String deriving (Show, Read, Eq)
+
+-- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
 type ExpressionStack = [ExpressionTree]
 
 transpileExpression :: [ForthVal] -> Either ForthErr [ExpressionTree]
@@ -31,34 +36,43 @@ transpileExpression (x : xs) = go [] (x : xs) []
   where
     go [] [] returnstack = Right (Prelude.reverse returnstack)
     go (x : exps) [] returnstack = Right $ Prelude.reverse (x : returnstack)
-    go exps (Number a : xs) returnstack = go (Lit a : exps) xs returnstack
+    go exps (Number a : xs) returnstack = go (Exp(Lit a ): exps) xs returnstack
     go [] _ _ = Left StackUnderflow
-    go (x : xs) (PrintCommand : zs) returnstack = go xs zs (Print x : returnstack)
+    go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
     go [x] _ _ = Left StackUnderflow
-    -- this is not currently produced by the parser, but will have to be
-    go (x : y : zs) (Arith Add : xs) returnstack = go (Addition y x : zs) xs returnstack
-    go (x : y : zs) (Arith Sub : xs) returnstack = go (Subtract y x : zs) xs returnstack
-    go (x : y : zs) (Arith Times : xs) returnstack = go (Multiply y x : zs) xs returnstack
-    go (x : y : zs) (Arith Div : xs) returnstack = go (IntDiv y x : zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Add : xs) returnstack = go (Exp(Addition y x) : zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Sub : xs) returnstack = go (Exp(Subtract y x) : zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Times : xs) returnstack = go (Exp(Multiply y x ): zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Div : xs) returnstack = go (Exp(IntDiv y x) : zs) xs returnstack
     go _ _ _ = Left ParseErr
 
-produceOutput :: ExpressionTree -> String
-produceOutput (Lit x) = show x
-produceOutput (Addition x y) = produceOutput x ++ " + " ++ produceOutput y
-produceOutput (Subtract (Lit x) (Lit y)) = show x ++ " - " ++ show y
-produceOutput (Subtract (Lit x) y) = show x ++ " - (" ++ produceOutput y ++ ")"
-produceOutput (Subtract x (Lit y)) = "(" ++ produceOutput x ++ ") - " ++ show y
-produceOutput (Subtract x y) = "(" ++ produceOutput x ++ ") - (" ++ produceOutput y ++ ")"
-produceOutput (Multiply (Lit x) (Lit y)) = show x ++ " * " ++ show y
-produceOutput (Multiply (Lit x) y) = show x ++ " * (" ++ produceOutput y ++ ")"
-produceOutput (Multiply x (Lit y)) = "(" ++ produceOutput x ++ ") * " ++ show y
-produceOutput (Multiply x y) = "(" ++ produceOutput x ++ ") * (" ++ produceOutput y ++ ")"
-produceOutput (IntDiv (Lit x) (Lit y)) = show x ++ " // " ++ show y
-produceOutput (IntDiv (Lit x) y) = show x ++ " // (" ++ produceOutput y ++ ")"
-produceOutput (IntDiv x (Lit y)) = "(" ++ produceOutput x ++ ") // " ++ show y
-produceOutput (IntDiv x y) = "(" ++ produceOutput x ++ ") // (" ++ produceOutput y ++ ")"
-produceOutput (Print x) = "print(" ++ produceOutput x ++ ")"
+class TargetAST t where
+  produceOutput ::  t -> String
 
+instance TargetAST ArithExpression  where
+
+  produceOutput (Lit x) = show x
+  produceOutput (Addition x y) = produceOutput x ++ " + " ++ produceOutput y
+  produceOutput (Subtract (Lit x) (Lit y)) = show x ++ " - " ++ show y
+  produceOutput (Subtract (Lit x) y) = show x ++ " - (" ++ produceOutput y ++ ")"
+  produceOutput (Subtract x (Lit y)) = "(" ++ produceOutput x ++ ") - " ++ show y
+  produceOutput (Subtract x y) = "(" ++ produceOutput x ++ ") - (" ++ produceOutput y ++ ")"
+  produceOutput (Multiply (Lit x) (Lit y)) = show x ++ " * " ++ show y
+  produceOutput (Multiply (Lit x) y) = show x ++ " * (" ++ produceOutput y ++ ")"
+  produceOutput (Multiply x (Lit y)) = "(" ++ produceOutput x ++ ") * " ++ show y
+  produceOutput (Multiply x y) = "(" ++ produceOutput x ++ ") * (" ++ produceOutput y ++ ")"
+  produceOutput (IntDiv (Lit x) (Lit y)) = show x ++ " // " ++ show y
+  produceOutput (IntDiv (Lit x) y) = show x ++ " // (" ++ produceOutput y ++ ")"
+  produceOutput (IntDiv x (Lit y)) = "(" ++ produceOutput x ++ ") // " ++ show y
+  produceOutput (IntDiv x y) = "(" ++ produceOutput x ++ ") // (" ++ produceOutput y ++ ")"
+instance TargetAST PrintExpression where
+  produceOutput (Print x) = "print(" ++ produceOutput x ++ ")"
+  produceOutput (PrintLit s) = "print(" ++ s ++ ")"
+
+instance TargetAST ExpressionTree where
+  produceOutput (Exp x) = produceOutput x 
+  produceOutput (Prt x) = produceOutput x 
+  
 generateOutputString :: Either ForthErr ExpressionStack -> String
 generateOutputString (Left err) = show err
 generateOutputString (Right []) = ""
