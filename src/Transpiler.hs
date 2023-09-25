@@ -23,7 +23,7 @@ import Test.Hspec (xcontext)
 
 data ExpressionTree = Exp ArithExpression | Prt PrintExpression deriving (Show, Read, Eq)
 
-data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression deriving (Show, Read, Eq)
+data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression | Equ ArithExpression ArithExpression | Lt ArithExpression ArithExpression | Gt ArithExpression ArithExpression | AND ArithExpression ArithExpression | OR ArithExpression ArithExpression | XOR ArithExpression ArithExpression | MOD ArithExpression ArithExpression | NOT ArithExpression deriving (Show, Read, Eq)
 
 data PrintExpression = Print ArithExpression | PrintLit String deriving (Show, Read, Eq)
 
@@ -36,21 +36,50 @@ transpileExpression (x : xs) = go [] (x : xs) []
   where
     go [] [] returnstack = Right (Prelude.reverse returnstack)
     go (x : exps) [] returnstack = Right $ Prelude.reverse (x : returnstack)
-    go exps (Number a : xs) returnstack = go (Exp(Lit a ): exps) xs returnstack
+    go exps (Number a : xs) returnstack = go (Exp (Lit a) : exps) xs returnstack
     go [] _ _ = Left StackUnderflow
     go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
     go [x] _ _ = Left StackUnderflow
-    go (Exp x : Exp y : zs) (Arith Add : xs) returnstack = go (Exp(Addition y x) : zs) xs returnstack
-    go (Exp x : Exp y : zs) (Arith Sub : xs) returnstack = go (Exp(Subtract y x) : zs) xs returnstack
-    go (Exp x : Exp y : zs) (Arith Times : xs) returnstack = go (Exp(Multiply y x ): zs) xs returnstack
-    go (Exp x : Exp y : zs) (Arith Div : xs) returnstack = go (Exp(IntDiv y x) : zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Add : xs) returnstack = go (Exp (Addition y x) : zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Sub : xs) returnstack = go (Exp (Subtract y x) : zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Times : xs) returnstack = go (Exp (Multiply y x) : zs) xs returnstack
+    go (Exp x : Exp y : zs) (Arith Div : xs) returnstack = go (Exp (IntDiv y x) : zs) xs returnstack
     go _ _ _ = Left ParseErr
 
+transpileExpressionTree :: [ForthVal] -> Either ForthErr [ExpressionTree]
+transpileExpressionTree [] = Right []
+transpileExpressionTree (x : xs) = go [] (x : xs) []
+  where
+    go [] [] returnstack = Right (Prelude.reverse returnstack)
+    go (x : exps) [] returnstack = Right $ Prelude.reverse (x : returnstack)
+    go exps (Number a : xs) returnstack = go (Exp (Lit a) : exps) xs returnstack
+    go [] _ _ = Left StackUnderflow
+    go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
+    go exps (Arith Not : xs) returnstack = go (transpileArith exps Not) xs returnstack
+    go [x] _ _ = Left StackUnderflow
+    go exps (Arith x : xs) returnstack = go (transpileArith exps x) xs returnstack
+    go _ _ _ = Left ParseErr
+
+transpileArith :: [ExpressionTree] -> Operator -> [ExpressionTree]
+transpileArith (Exp x : Exp y : zs) Add = (Exp (Addition y x) : zs)
+transpileArith (Exp x : Exp y : zs) Sub = (Exp (Subtract y x) : zs)
+transpileArith (Exp x : Exp y : zs) Times = (Exp (Multiply y x) : zs)
+transpileArith (Exp x : Exp y : zs) Div = (Exp (IntDiv y x) : zs)
+transpileArith (Exp x : Exp y : zs) Equal = (Exp (Equ y x) : zs)
+transpileArith (Exp x : Exp y : zs) Less = (Exp (Lt y x) : zs)
+transpileArith (Exp x : Exp y : zs) Greater = (Exp (Gt y x) : zs)
+transpileArith (Exp x : Exp y : zs) And = (Exp (AND y x) : zs)
+transpileArith (Exp x : Exp y : zs) Or = (Exp (OR y x) : zs)
+transpileArith (Exp x : Exp y : zs) Xor = Exp (XOR y x) : zs
+transpileArith (Exp x : Exp y : zs) Mod = Exp (MOD y x) : zs
+transpileArith (Exp x : zs) Not = Exp (NOT x) : zs
+transpileArith [] _ = []
+transpileArith _ _ = []
+
 class TargetAST t where
-  produceOutput ::  t -> String
+  produceOutput :: t -> String
 
-instance TargetAST ArithExpression  where
-
+instance TargetAST ArithExpression where
   produceOutput (Lit x) = show x
   produceOutput (Addition x y) = produceOutput x ++ " + " ++ produceOutput y
   produceOutput (Subtract (Lit x) (Lit y)) = show x ++ " - " ++ show y
@@ -65,14 +94,15 @@ instance TargetAST ArithExpression  where
   produceOutput (IntDiv (Lit x) y) = show x ++ " // (" ++ produceOutput y ++ ")"
   produceOutput (IntDiv x (Lit y)) = "(" ++ produceOutput x ++ ") // " ++ show y
   produceOutput (IntDiv x y) = "(" ++ produceOutput x ++ ") // (" ++ produceOutput y ++ ")"
+
 instance TargetAST PrintExpression where
   produceOutput (Print x) = "print(" ++ produceOutput x ++ ")"
   produceOutput (PrintLit s) = "print(" ++ s ++ ")"
 
 instance TargetAST ExpressionTree where
-  produceOutput (Exp x) = produceOutput x 
-  produceOutput (Prt x) = produceOutput x 
-  
+  produceOutput (Exp x) = produceOutput x
+  produceOutput (Prt x) = produceOutput x
+
 generateOutputString :: Either ForthErr ExpressionStack -> String
 generateOutputString (Left err) = show err
 generateOutputString (Right []) = ""
@@ -95,7 +125,7 @@ lookupDefs (Word w) = lookupWord w
 lookupDefs f = Right f
 
 lookupTranspile :: [ForthVal] -> Either ForthErr [ExpressionTree]
-lookupTranspile vals = traverse lookupDefs vals >>= transpileExpression
+lookupTranspile vals = traverse lookupDefs vals >>= transpileExpressionTree
 
 lookupTranspileOutput :: [ForthVal] -> IO ()
 lookupTranspileOutput = showOutput . lookupTranspile
