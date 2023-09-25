@@ -118,6 +118,7 @@ main =
       -- Tests for Transpiler
       ------------------------
       transpileAddAndSubtract
+      transpilePrintExpression
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -919,6 +920,17 @@ transpileAddAndSubtract =
         "respects the order of operations"
         subtractAfterAdd
 
+
+printExpression :: Expectation
+printExpression = parseTranspileGenerateOutputFromText " 1 2 + 3 - . " `shouldBe` "print((1 + 2) - 3)\n"
+
+transpilePrintExpression :: SpecWith()
+transpilePrintExpression =
+  describe "parseTranspileOutputFromText" $
+    context "when transpiling and a print statement of an arithmetic expression" $
+      it
+        "has the print statement around the expression"
+        printExpression
 -----------Helper functions------------
 ---------------------------------------
 
