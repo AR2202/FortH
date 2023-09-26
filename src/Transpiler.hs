@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module Transpiler
   ( transpileExpression,
     ExpressionStack,
@@ -23,7 +25,23 @@ import Test.Hspec (xcontext)
 
 data ExpressionTree = Exp ArithExpression | Prt PrintExpression deriving (Show, Read, Eq)
 
-data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression | Equ ArithExpression ArithExpression | Lt ArithExpression ArithExpression | Gt ArithExpression ArithExpression | AND ArithExpression ArithExpression | OR ArithExpression ArithExpression | XOR ArithExpression ArithExpression | MOD ArithExpression ArithExpression | NOT ArithExpression deriving (Show, Read, Eq)
+data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression | Equ ArithExpression ArithExpression | Lt ArithExpression ArithExpression | Gt ArithExpression ArithExpression | AND ArithExpression ArithExpression | OR ArithExpression ArithExpression | XOR ArithExpression ArithExpression | MOD ArithExpression ArithExpression | NOT ArithExpression deriving (Read, Eq)
+
+instance Show ArithExpression where
+  show :: ArithExpression -> String
+  show (Lit x) = show x
+  show (Addition x y) = "(" ++ show x ++ "+" ++ show y ++ ")"
+  show (Subtract x y) = "(" ++ show x ++ "-" ++ show y ++ ")"
+  show (Multiply x y)= "(" ++ show x ++ "*" ++ show y ++ ")"
+  show (IntDiv x y)= "(" ++ show x ++ "//" ++ show y ++ ")"
+  show (Equ x y)= "(" ++ show x ++ "==" ++ show y ++ ")"
+  show (Gt x y)= "(" ++ show x ++ ">" ++ show y ++ ")"
+  show (Lt x y)= "(" ++ show x ++ "<" ++ show y ++ ")"
+  show (AND x y)= "(" ++ show x ++ "and" ++ show y ++ ")"
+  show (OR x y)= "(" ++ show x ++ "or" ++ show y ++ ")"
+  show (XOR x y)= "(" ++ show x ++ "!=" ++ show y ++ ")"
+  show (MOD x y)= "(" ++ show x ++ "%" ++ show y ++ ")"
+  show (NOT x )= "not bool(" ++ show x ++  ")"
 
 data PrintExpression = Print ArithExpression | PrintLit String deriving (Show, Read, Eq)
 
@@ -94,6 +112,14 @@ instance TargetAST ArithExpression where
   produceOutput (IntDiv (Lit x) y) = show x ++ " // (" ++ produceOutput y ++ ")"
   produceOutput (IntDiv x (Lit y)) = "(" ++ produceOutput x ++ ") // " ++ show y
   produceOutput (IntDiv x y) = "(" ++ produceOutput x ++ ") // (" ++ produceOutput y ++ ")"
+  produceOutput (Equ x y) = "(" ++ produceOutput x ++ ") == (" ++ produceOutput y ++ ")"
+  produceOutput (Lt x y) = "(" ++ produceOutput x ++ ") < (" ++ produceOutput y ++ ")"
+  produceOutput (Gt x y) = "(" ++ produceOutput x ++ ") > (" ++ produceOutput y ++ ")"
+  produceOutput (MOD x y) = "(" ++ produceOutput x ++ ") % (" ++ produceOutput y ++ ")"
+  produceOutput (AND x y) = "bool(" ++ produceOutput x ++ ") and bool(" ++ produceOutput y ++ ")"
+  produceOutput (OR x y) = "bool(" ++ produceOutput x ++ ") or bool(" ++ produceOutput y ++ ")"
+  produceOutput (XOR x y) = "bool(" ++ produceOutput x ++ ") != bool(" ++ produceOutput y ++ ")"
+  produceOutput (NOT x) = "not bool(" ++ produceOutput x ++ ")"
 
 instance TargetAST PrintExpression where
   produceOutput (Print x) = "print(" ++ produceOutput x ++ ")"
