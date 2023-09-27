@@ -48,7 +48,7 @@ data PrintExpression = Print ArithExpression | PrintLit String deriving (Read, E
 instance Show PrintExpression where
   show (Print (Lit x)) = "print(" ++ show x ++ ")"
   show (Print x) = "print" ++ show x
-  show (PrintLit s) = "print(" ++ s ++ ")"
+  show (PrintLit s) = "print(" ++ show s ++ ")"
 
 -- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
 type ExpressionStack = [ExpressionTree]
@@ -76,23 +76,25 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
     go [] [] returnstack = Right (Prelude.reverse returnstack)
     go (x : exps) [] returnstack = Right $ Prelude.reverse (x : returnstack)
     go exps (Number a : xs) returnstack = go (Exp (Lit a) : exps) xs returnstack
+    go exps (PrintStringLiteral s : zs) returnstack = go exps zs (Prt (PrintLit (Text.unpack s)) : returnstack)
     go [] _ _ = Left StackUnderflow
     go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
+
     go exps (Arith Not : xs) returnstack = go (transpileArith exps Not) xs returnstack
     go [x] _ _ = Left StackUnderflow
     go exps (Arith x : xs) returnstack = go (transpileArith exps x) xs returnstack
     go _ _ _ = Left ParseErr
 
 transpileArith :: [ExpressionTree] -> Operator -> [ExpressionTree]
-transpileArith (Exp x : Exp y : zs) Add = (Exp (Addition y x) : zs)
-transpileArith (Exp x : Exp y : zs) Sub = (Exp (Subtract y x) : zs)
-transpileArith (Exp x : Exp y : zs) Times = (Exp (Multiply y x) : zs)
-transpileArith (Exp x : Exp y : zs) Div = (Exp (IntDiv y x) : zs)
-transpileArith (Exp x : Exp y : zs) Equal = (Exp (Equ y x) : zs)
-transpileArith (Exp x : Exp y : zs) Less = (Exp (Lt y x) : zs)
-transpileArith (Exp x : Exp y : zs) Greater = (Exp (Gt y x) : zs)
-transpileArith (Exp x : Exp y : zs) And = (Exp (AND y x) : zs)
-transpileArith (Exp x : Exp y : zs) Or = (Exp (OR y x) : zs)
+transpileArith (Exp x : Exp y : zs) Add = Exp (Addition y x) : zs
+transpileArith (Exp x : Exp y : zs) Sub = Exp (Subtract y x) : zs
+transpileArith (Exp x : Exp y : zs) Times = Exp (Multiply y x) : zs
+transpileArith (Exp x : Exp y : zs) Div = Exp (IntDiv y x) : zs
+transpileArith (Exp x : Exp y : zs) Equal = Exp (Equ y x) : zs
+transpileArith (Exp x : Exp y : zs) Less = Exp (Lt y x) : zs
+transpileArith (Exp x : Exp y : zs) Greater = Exp (Gt y x) : zs
+transpileArith (Exp x : Exp y : zs) And = Exp (AND y x) : zs
+transpileArith (Exp x : Exp y : zs) Or = Exp (OR y x) : zs
 transpileArith (Exp x : Exp y : zs) Xor = Exp (XOR y x) : zs
 transpileArith (Exp x : Exp y : zs) Mod = Exp (MOD y x) : zs
 transpileArith (Exp x : zs) Not = Exp (NOT x) : zs
@@ -105,6 +107,7 @@ class TargetAST t where
 instance TargetAST ArithExpression where
   produceOutput (Lit x) = show x
   produceOutput x = (Prelude.init . Prelude.tail . show) x
+
 
 instance TargetAST PrintExpression where
   produceOutput = show

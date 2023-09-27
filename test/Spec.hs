@@ -119,6 +119,8 @@ main =
       ------------------------
       transpileAddAndSubtract
       transpilePrintExpression
+      transpilePrintStringLiteral
+      transpileMod
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -915,11 +917,21 @@ subtractAfterAdd = parseTranspileGenerateOutputFromText " 1 2 + 3 -" `shouldBe` 
 transpileAddAndSubtract :: SpecWith()
 transpileAddAndSubtract =
   describe "parseTranspileOutputFromText" $
-    context "when transpiling and arithmetic expression" $
+    context "when transpiling an arithmetic expression" $
       it
         "respects the order of operations"
         subtractAfterAdd
 
+modOrderCorrect :: Expectation
+modOrderCorrect = parseTranspileGenerateOutputFromText "3 2 MOD 1 =" `shouldBe` "(3 % 2) == 1\n"
+
+transpileMod :: SpecWith()
+transpileMod =
+  describe "parseTranspileOutputFromText" $
+    context "when transpiling MOD" $
+      it
+        "outputs correct order"
+        modOrderCorrect
 
 printExpression :: Expectation
 printExpression = parseTranspileGenerateOutputFromText " 1 2 + 3 - . " `shouldBe` "print((1 + 2) - 3)\n"
@@ -931,6 +943,17 @@ transpilePrintExpression =
       it
         "has the print statement around the expression"
         printExpression
+
+printStringLiteral :: Expectation
+printStringLiteral = parseTranspileGenerateOutputFromText " .\"hello world\"" `shouldBe` "print(\"hello world\")\n"
+
+transpilePrintStringLiteral :: SpecWith()
+transpilePrintStringLiteral =
+  describe "parseTranspileOutputFromText" $
+    context "when transpiling a print statement of a string literal" $
+      it
+        "has the print statement around the string"
+        printStringLiteral
 -----------Helper functions------------
 ---------------------------------------
 
