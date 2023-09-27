@@ -30,20 +30,25 @@ data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subt
 instance Show ArithExpression where
   show :: ArithExpression -> String
   show (Lit x) = show x
-  show (Addition x y) = "(" ++ show x ++ "+" ++ show y ++ ")"
-  show (Subtract x y) = "(" ++ show x ++ "-" ++ show y ++ ")"
-  show (Multiply x y)= "(" ++ show x ++ "*" ++ show y ++ ")"
-  show (IntDiv x y)= "(" ++ show x ++ "//" ++ show y ++ ")"
-  show (Equ x y)= "(" ++ show x ++ "==" ++ show y ++ ")"
-  show (Gt x y)= "(" ++ show x ++ ">" ++ show y ++ ")"
-  show (Lt x y)= "(" ++ show x ++ "<" ++ show y ++ ")"
-  show (AND x y)= "(" ++ show x ++ "and" ++ show y ++ ")"
-  show (OR x y)= "(" ++ show x ++ "or" ++ show y ++ ")"
-  show (XOR x y)= "(" ++ show x ++ "!=" ++ show y ++ ")"
-  show (MOD x y)= "(" ++ show x ++ "%" ++ show y ++ ")"
-  show (NOT x )= "not bool(" ++ show x ++  ")"
+  show (Addition x y) = "(" ++ show x ++ " + " ++ show y ++ ")"
+  show (Subtract x y) = "(" ++ show x ++ " - " ++ show y ++ ")"
+  show (Multiply x y) = "(" ++ show x ++ " * " ++ show y ++ ")"
+  show (IntDiv x y) = "(" ++ show x ++ " // " ++ show y ++ ")"
+  show (Equ x y) = "(" ++ show x ++ " == " ++ show y ++ ")"
+  show (Gt x y) = "(" ++ show x ++ " > " ++ show y ++ ")"
+  show (Lt x y) = "(" ++ show x ++ " < " ++ show y ++ ")"
+  show (AND x y) = "(bool(" ++ show x ++ ") and bool(" ++ show y ++ "))"
+  show (OR x y) = "(bool(" ++ show x ++ ") or bool(" ++ show y ++ "))"
+  show (XOR x y) = "(bool(" ++ show x ++ ") != bool(" ++ show y ++ "))"
+  show (MOD x y) = "(" ++ show x ++ " % " ++ show y ++ ")"
+  show (NOT x) = "not bool(" ++ show x ++ ")"
 
-data PrintExpression = Print ArithExpression | PrintLit String deriving (Show, Read, Eq)
+data PrintExpression = Print ArithExpression | PrintLit String deriving (Read, Eq)
+
+instance Show PrintExpression where
+  show (Print (Lit x)) = "print(" ++ show x ++ ")"
+  show (Print x) = "print" ++ show x
+  show (PrintLit s) = "print(" ++ s ++ ")"
 
 -- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
 type ExpressionStack = [ExpressionTree]
@@ -99,31 +104,10 @@ class TargetAST t where
 
 instance TargetAST ArithExpression where
   produceOutput (Lit x) = show x
-  produceOutput (Addition x y) = produceOutput x ++ " + " ++ produceOutput y
-  produceOutput (Subtract (Lit x) (Lit y)) = show x ++ " - " ++ show y
-  produceOutput (Subtract (Lit x) y) = show x ++ " - (" ++ produceOutput y ++ ")"
-  produceOutput (Subtract x (Lit y)) = "(" ++ produceOutput x ++ ") - " ++ show y
-  produceOutput (Subtract x y) = "(" ++ produceOutput x ++ ") - (" ++ produceOutput y ++ ")"
-  produceOutput (Multiply (Lit x) (Lit y)) = show x ++ " * " ++ show y
-  produceOutput (Multiply (Lit x) y) = show x ++ " * (" ++ produceOutput y ++ ")"
-  produceOutput (Multiply x (Lit y)) = "(" ++ produceOutput x ++ ") * " ++ show y
-  produceOutput (Multiply x y) = "(" ++ produceOutput x ++ ") * (" ++ produceOutput y ++ ")"
-  produceOutput (IntDiv (Lit x) (Lit y)) = show x ++ " // " ++ show y
-  produceOutput (IntDiv (Lit x) y) = show x ++ " // (" ++ produceOutput y ++ ")"
-  produceOutput (IntDiv x (Lit y)) = "(" ++ produceOutput x ++ ") // " ++ show y
-  produceOutput (IntDiv x y) = "(" ++ produceOutput x ++ ") // (" ++ produceOutput y ++ ")"
-  produceOutput (Equ x y) = "(" ++ produceOutput x ++ ") == (" ++ produceOutput y ++ ")"
-  produceOutput (Lt x y) = "(" ++ produceOutput x ++ ") < (" ++ produceOutput y ++ ")"
-  produceOutput (Gt x y) = "(" ++ produceOutput x ++ ") > (" ++ produceOutput y ++ ")"
-  produceOutput (MOD x y) = "(" ++ produceOutput x ++ ") % (" ++ produceOutput y ++ ")"
-  produceOutput (AND x y) = "bool(" ++ produceOutput x ++ ") and bool(" ++ produceOutput y ++ ")"
-  produceOutput (OR x y) = "bool(" ++ produceOutput x ++ ") or bool(" ++ produceOutput y ++ ")"
-  produceOutput (XOR x y) = "bool(" ++ produceOutput x ++ ") != bool(" ++ produceOutput y ++ ")"
-  produceOutput (NOT x) = "not bool(" ++ produceOutput x ++ ")"
+  produceOutput x = (Prelude.init . Prelude.tail . show) x
 
 instance TargetAST PrintExpression where
-  produceOutput (Print x) = "print(" ++ produceOutput x ++ ")"
-  produceOutput (PrintLit s) = "print(" ++ s ++ ")"
+  produceOutput = show
 
 instance TargetAST ExpressionTree where
   produceOutput (Exp x) = produceOutput x
