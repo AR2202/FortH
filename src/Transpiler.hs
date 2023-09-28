@@ -50,6 +50,12 @@ instance Show PrintExpression where
   show (Print x) = "print" ++ show x
   show (PrintLit s) = "print(" ++ show s ++ ")"
 
+data IfExpression = IfExp ExpressionTree ExpressionStack | IfElseExp ExpressionTree ExpressionStack ExpressionStack deriving (Read, Eq)
+
+instance Show IfExpression where
+  show (IfExp cond e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
+  show (IfElseExp cond i e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput i) ++ "\nelse:\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
+
 -- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
 type ExpressionStack = [ExpressionTree]
 
@@ -79,7 +85,6 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
     go exps (PrintStringLiteral s : zs) returnstack = go exps zs (Prt (PrintLit (Text.unpack s)) : returnstack)
     go [] _ _ = Left StackUnderflow
     go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
-
     go exps (Arith Not : xs) returnstack = go (transpileArith exps Not) xs returnstack
     go [x] _ _ = Left StackUnderflow
     go exps (Arith x : xs) returnstack = go (transpileArith exps x) xs returnstack
@@ -101,6 +106,9 @@ transpileArith (Exp x : zs) Not = Exp (NOT x) : zs
 transpileArith [] _ = []
 transpileArith _ _ = []
 
+-- transpileIf :: [ExpressionTree] -> ForthVal-> [ExpressionTree]
+-- transpileIf (Exp x : Exp y : zs) Add = Exp (Addition y x) : zs
+
 class TargetAST t where
   produceOutput :: t -> String
 
@@ -108,8 +116,10 @@ instance TargetAST ArithExpression where
   produceOutput (Lit x) = show x
   produceOutput x = (Prelude.init . Prelude.tail . show) x
 
-
 instance TargetAST PrintExpression where
+  produceOutput = show
+
+instance TargetAST IfExpression where
   produceOutput = show
 
 instance TargetAST ExpressionTree where
