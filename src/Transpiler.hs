@@ -1,7 +1,7 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module Transpiler
-  ( transpileExpression,
+  ( transpileExpressionTree,
     ExpressionStack,
     ExpressionTree (..),
     transpileAndOutput,
@@ -23,7 +23,7 @@ import Parser
 import System.FilePath.Lens (filename)
 import Test.Hspec (xcontext)
 
-data ExpressionTree = Exp ArithExpression | Prt PrintExpression deriving (Show, Read, Eq)
+data ExpressionTree = Exp ArithExpression | Prt PrintExpression | Cond IfExpression deriving (Show, Read, Eq)
 
 data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression | Equ ArithExpression ArithExpression | Lt ArithExpression ArithExpression | Gt ArithExpression ArithExpression | AND ArithExpression ArithExpression | OR ArithExpression ArithExpression | XOR ArithExpression ArithExpression | MOD ArithExpression ArithExpression | NOT ArithExpression deriving (Read, Eq)
 
@@ -59,7 +59,7 @@ instance Show IfExpression where
 -- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
 type ExpressionStack = [ExpressionTree]
 
-transpileExpression :: [ForthVal] -> Either ForthErr [ExpressionTree]
+{- transpileExpression :: [ForthVal] -> Either ForthErr [ExpressionTree]
 transpileExpression [] = Right []
 transpileExpression (x : xs) = go [] (x : xs) []
   where
@@ -73,7 +73,7 @@ transpileExpression (x : xs) = go [] (x : xs) []
     go (Exp x : Exp y : zs) (Arith Sub : xs) returnstack = go (Exp (Subtract y x) : zs) xs returnstack
     go (Exp x : Exp y : zs) (Arith Times : xs) returnstack = go (Exp (Multiply y x) : zs) xs returnstack
     go (Exp x : Exp y : zs) (Arith Div : xs) returnstack = go (Exp (IntDiv y x) : zs) xs returnstack
-    go _ _ _ = Left ParseErr
+    go _ _ _ = Left ParseErr -}
 
 transpileExpressionTree :: [ForthVal] -> Either ForthErr [ExpressionTree]
 transpileExpressionTree [] = Right []
@@ -86,6 +86,14 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
     go [] _ _ = Left StackUnderflow
     go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
     go exps (Arith Not : xs) returnstack = go (transpileArith exps Not) xs returnstack
+    go (x : xs) (If ifvals : zs) returnstack = case transpileExpressionTree ifvals of
+      Left err -> Left err
+      Right etree -> go xs zs (Cond (IfExp x etree) : returnstack)
+    go (x : xs) (IfElse ifvals elsevals : zs) returnstack = case transpileExpressionTree ifvals of
+      Left err -> Left err
+      Right etree -> case transpileExpressionTree elsevals of
+        Left err -> Left err
+        Right elsetree -> go xs zs (Cond (IfElseExp x etree elsetree) : returnstack)
     go [x] _ _ = Left StackUnderflow
     go exps (Arith x : xs) returnstack = go (transpileArith exps x) xs returnstack
     go _ _ _ = Left ParseErr
@@ -125,6 +133,7 @@ instance TargetAST IfExpression where
 instance TargetAST ExpressionTree where
   produceOutput (Exp x) = produceOutput x
   produceOutput (Prt x) = produceOutput x
+  produceOutput (Cond x) = produceOutput x
 
 generateOutputString :: Either ForthErr ExpressionStack -> String
 generateOutputString (Left err) = show err
@@ -135,7 +144,7 @@ showOutput :: Either ForthErr [ExpressionTree] -> IO ()
 showOutput = putStrLn . generateOutputString
 
 transpileAndOutput :: [ForthVal] -> IO ()
-transpileAndOutput = showOutput . transpileExpression
+transpileAndOutput = showOutput . transpileExpressionTree
 
 lookupDefs :: ForthVal -> Either ForthErr ForthVal
 lookupDefs (Word w) = lookupWord w
