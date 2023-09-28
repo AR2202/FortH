@@ -56,25 +56,11 @@ instance Show IfExpression where
   show (IfExp cond e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
   show (IfElseExp cond i e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput i) ++ "\nelse:\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
 
--- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
+
 type ExpressionStack = [ExpressionTree]
 
-{- transpileExpression :: [ForthVal] -> Either ForthErr [ExpressionTree]
-transpileExpression [] = Right []
-transpileExpression (x : xs) = go [] (x : xs) []
-  where
-    go [] [] returnstack = Right (Prelude.reverse returnstack)
-    go (x : exps) [] returnstack = Right $ Prelude.reverse (x : returnstack)
-    go exps (Number a : xs) returnstack = go (Exp (Lit a) : exps) xs returnstack
-    go [] _ _ = Left StackUnderflow
-    go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
-    go [x] _ _ = Left StackUnderflow
-    go (Exp x : Exp y : zs) (Arith Add : xs) returnstack = go (Exp (Addition y x) : zs) xs returnstack
-    go (Exp x : Exp y : zs) (Arith Sub : xs) returnstack = go (Exp (Subtract y x) : zs) xs returnstack
-    go (Exp x : Exp y : zs) (Arith Times : xs) returnstack = go (Exp (Multiply y x) : zs) xs returnstack
-    go (Exp x : Exp y : zs) (Arith Div : xs) returnstack = go (Exp (IntDiv y x) : zs) xs returnstack
-    go _ _ _ = Left ParseErr -}
 
+-- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
 transpileExpressionTree :: [ForthVal] -> Either ForthErr [ExpressionTree]
 transpileExpressionTree [] = Right []
 transpileExpressionTree (x : xs) = go [] (x : xs) []
