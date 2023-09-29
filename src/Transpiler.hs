@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Transpiler
   ( transpileExpressionTree,
@@ -23,7 +24,7 @@ import Parser
 import System.FilePath.Lens (filename)
 import Test.Hspec (xcontext)
 
-data ExpressionTree = Exp ArithExpression | Prt PrintExpression | Cond IfExpression deriving (Show, Read, Eq)
+data ExpressionTree = Exp ArithExpression | Prt PrintExpression | Cond IfExpression | Loops LoopExpression | Varname String deriving (Show, Read, Eq)
 
 data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression | Equ ArithExpression ArithExpression | Lt ArithExpression ArithExpression | Gt ArithExpression ArithExpression | AND ArithExpression ArithExpression | OR ArithExpression ArithExpression | XOR ArithExpression ArithExpression | MOD ArithExpression ArithExpression | NOT ArithExpression deriving (Read, Eq)
 
@@ -43,12 +44,13 @@ instance Show ArithExpression where
   show (MOD x y) = "(" ++ show x ++ " % " ++ show y ++ ")"
   show (NOT x) = "not bool(" ++ show x ++ ")"
 
-data PrintExpression = Print ArithExpression | PrintLit String deriving (Read, Eq)
+data PrintExpression = Print ArithExpression | PrintLit String | PrintVar String deriving (Read, Eq)
 
 instance Show PrintExpression where
   show (Print (Lit x)) = "print(" ++ show x ++ ")"
   show (Print x) = "print" ++ show x
   show (PrintLit s) = "print(" ++ show s ++ ")"
+  show (PrintVar s) = "print(" ++ s ++ ")"
 
 data IfExpression = IfExp ExpressionTree ExpressionStack | IfElseExp ExpressionTree ExpressionStack ExpressionStack deriving (Read, Eq)
 
@@ -56,9 +58,12 @@ instance Show IfExpression where
   show (IfExp cond e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
   show (IfElseExp cond i e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput i) ++ "\nelse:\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
 
+data LoopExpression = Doloop ExpressionTree ExpressionTree ExpressionStack deriving (Read, Eq)
+
+instance Show LoopExpression where
+  show (Doloop  start end exp) = "for i in range("++ produceOutput start++","++produceOutput end++ "):\n    " ++ Prelude.unlines (Prelude.map produceOutput exp)
 
 type ExpressionStack = [ExpressionTree]
-
 
 -- | Transforms the Forth-AST produced by the Parser into the Target language (python) AST
 transpileExpressionTree :: [ForthVal] -> Either ForthErr [ExpressionTree]
@@ -81,6 +86,9 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
         Left err -> Left err
         Right elsetree -> go xs zs (Cond (IfElseExp x etree elsetree) : returnstack)
     go [x] _ _ = Left StackUnderflow
+    go (x : y : xs) (DoLoop (Loop lb) : zs) returnstack = case transpileExpressionTree lb of
+      Left err -> Left err
+      Right etree -> go xs zs (Loops (Doloop x y etree) : returnstack)
     go exps (Arith x : xs) returnstack = go (transpileArith exps x) xs returnstack
     go _ _ _ = Left ParseErr
 
@@ -116,10 +124,15 @@ instance TargetAST PrintExpression where
 instance TargetAST IfExpression where
   produceOutput = show
 
+instance TargetAST LoopExpression where
+  produceOutput = show
+
 instance TargetAST ExpressionTree where
   produceOutput (Exp x) = produceOutput x
   produceOutput (Prt x) = produceOutput x
   produceOutput (Cond x) = produceOutput x
+  produceOutput (Varname x) = x
+  produceOutput (Loops x) = produceOutput x
 
 generateOutputString :: Either ForthErr ExpressionStack -> String
 generateOutputString (Left err) = show err
@@ -135,6 +148,7 @@ transpileAndOutput = showOutput . transpileExpressionTree
 lookupDefs :: ForthVal -> Either ForthErr ForthVal
 lookupDefs (Word w) = lookupWord w
   where
+    lookupWord "I" = Right (Variable "I")
     lookupWord w = case M.lookup w initialNames of
       Nothing -> Left UnknownWord
       Just i -> case IM.lookup i initialDefs of
