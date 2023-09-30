@@ -61,7 +61,7 @@ instance Show IfExpression where
 data LoopExpression = Doloop ExpressionTree ExpressionTree ExpressionStack deriving (Read, Eq)
 
 instance Show LoopExpression where
-  show (Doloop  start end exp) = "for i in range("++ produceOutput start++","++produceOutput end++ "):\n    " ++ Prelude.unlines (Prelude.map produceOutput exp)
+  show (Doloop start end exp) = "for i in range(" ++ produceOutput start ++ "," ++ produceOutput end ++ "):\n    " ++ Prelude.unlines (Prelude.map produceOutput exp)
 
 type ExpressionStack = [ExpressionTree]
 
@@ -74,19 +74,22 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
     go (x : exps) [] returnstack = Right $ Prelude.reverse (x : returnstack)
     go exps (Number a : xs) returnstack = go (Exp (Lit a) : exps) xs returnstack
     go exps (PrintStringLiteral s : zs) returnstack = go exps zs (Prt (PrintLit (Text.unpack s)) : returnstack)
+    go exps (Forthvals [Number 0, Mem Retrieve] : zs) returnstack = go (Varname "i" : exps) zs returnstack
     go [] _ _ = Left StackUnderflow
     go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
+    go (Varname s : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (PrintVar s) : returnstack)
     go exps (Arith Not : xs) returnstack = go (transpileArith exps Not) xs returnstack
     go (x : xs) (If ifvals : zs) returnstack = case transpileExpressionTree ifvals of
       Left err -> Left err
       Right etree -> go xs zs (Cond (IfExp x etree) : returnstack)
-    go (x : xs) (IfElse ifvals elsevals : zs) returnstack = case transpileExpressionTree ifvals of
+    go (x : xs) (IfElse ifvals elsevals : zs) returnstack = case lookupTranspile ifvals of
       Left err -> Left err
-      Right etree -> case transpileExpressionTree elsevals of
+      Right etree -> case lookupTranspile elsevals of
         Left err -> Left err
         Right elsetree -> go xs zs (Cond (IfElseExp x etree elsetree) : returnstack)
+    
     go [x] _ _ = Left StackUnderflow
-    go (x : y : xs) (DoLoop (Loop lb) : zs) returnstack = case transpileExpressionTree lb of
+    go (x : y : xs) (DoLoop (Loop lb) : zs) returnstack = case lookupTranspile lb of
       Left err -> Left err
       Right etree -> go xs zs (Loops (Doloop x y etree) : returnstack)
     go exps (Arith x : xs) returnstack = go (transpileArith exps x) xs returnstack
@@ -148,8 +151,8 @@ transpileAndOutput = showOutput . transpileExpressionTree
 lookupDefs :: ForthVal -> Either ForthErr ForthVal
 lookupDefs (Word w) = lookupWord w
   where
-    lookupWord "I" = Right (Variable "I")
     lookupWord w = case M.lookup w initialNames of
+      -- to be added here: lookup of variable names and function defs
       Nothing -> Left UnknownWord
       Just i -> case IM.lookup i initialDefs of
         Nothing -> Left UnknownWord
