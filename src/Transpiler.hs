@@ -24,9 +24,16 @@ import Parser
 import System.FilePath.Lens (filename)
 import Test.Hspec (xcontext)
 
-data ExpressionTree = Exp ArithExpression | Prt PrintExpression | Cond IfExpression | Loops LoopExpression | Varname String deriving (Show, Read, Eq)
+data ExpressionTree = Exp ArithExpression | Prt PrintExpression | Cond IfExpression | Loops LoopExpression | Varname String deriving (Read, Eq)
 
-data ArithExpression = Lit Int | Addition ArithExpression ArithExpression | Subtract ArithExpression ArithExpression | Multiply ArithExpression ArithExpression | IntDiv ArithExpression ArithExpression | Equ ArithExpression ArithExpression | Lt ArithExpression ArithExpression | Gt ArithExpression ArithExpression | AND ArithExpression ArithExpression | OR ArithExpression ArithExpression | XOR ArithExpression ArithExpression | MOD ArithExpression ArithExpression | NOT ArithExpression deriving (Read, Eq)
+instance Show ExpressionTree where
+  show (Exp x) = show x
+  show (Prt x) = show x
+  show (Cond x) = show x
+  show (Varname x) = x
+  show (Loops x) = show x
+
+data ArithExpression = Lit Int | Addition ExpressionTree ExpressionTree | Subtract ExpressionTree ExpressionTree | Multiply ExpressionTree ExpressionTree | IntDiv ExpressionTree ExpressionTree | Equ ExpressionTree ExpressionTree | Lt ExpressionTree ExpressionTree | Gt ExpressionTree ExpressionTree | AND ExpressionTree ExpressionTree | OR ExpressionTree ExpressionTree | XOR ExpressionTree ExpressionTree | MOD ExpressionTree ExpressionTree | NOT ExpressionTree deriving (Read, Eq)
 
 instance Show ArithExpression where
   show :: ArithExpression -> String
@@ -87,7 +94,6 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
       Right etree -> case lookupTranspile elsevals of
         Left err -> Left err
         Right elsetree -> go xs zs (Cond (IfElseExp x etree elsetree) : returnstack)
-    
     go [x] _ _ = Left StackUnderflow
     go (x : y : xs) (DoLoop (Loop lb) : zs) returnstack = case lookupTranspile lb of
       Left err -> Left err
@@ -96,21 +102,20 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
     go _ _ _ = Left ParseErr
 
 transpileArith :: [ExpressionTree] -> Operator -> [ExpressionTree]
-transpileArith (Exp x : Exp y : zs) Add = Exp (Addition y x) : zs
-transpileArith (Exp x : Exp y : zs) Sub = Exp (Subtract y x) : zs
-transpileArith (Exp x : Exp y : zs) Times = Exp (Multiply y x) : zs
-transpileArith (Exp x : Exp y : zs) Div = Exp (IntDiv y x) : zs
-transpileArith (Exp x : Exp y : zs) Equal = Exp (Equ y x) : zs
-transpileArith (Exp x : Exp y : zs) Less = Exp (Lt y x) : zs
-transpileArith (Exp x : Exp y : zs) Greater = Exp (Gt y x) : zs
-transpileArith (Exp x : Exp y : zs) And = Exp (AND y x) : zs
-transpileArith (Exp x : Exp y : zs) Or = Exp (OR y x) : zs
-transpileArith (Exp x : Exp y : zs) Xor = Exp (XOR y x) : zs
-transpileArith (Exp x : Exp y : zs) Mod = Exp (MOD y x) : zs
-transpileArith (Exp x : zs) Not = Exp (NOT x) : zs
+transpileArith (x : y : zs) Add = Exp (Addition y x) : zs
+transpileArith (x : y : zs) Sub = Exp (Subtract y x) : zs
+transpileArith (x : y : zs) Times = Exp (Multiply y x) : zs
+transpileArith (x : y : zs) Div = Exp (IntDiv y x) : zs
+transpileArith (x : y : zs) Equal = Exp (Equ y x) : zs
+transpileArith (x : y : zs) Less = Exp (Lt y x) : zs
+transpileArith (x : y : zs) Greater = Exp (Gt y x) : zs
+transpileArith (x : y : zs) And = Exp (AND y x) : zs
+transpileArith (x : y : zs) Or = Exp (OR y x) : zs
+transpileArith (x : y : zs) Xor = Exp (XOR y x) : zs
+transpileArith (x : y : zs) Mod = Exp (MOD y x) : zs
+transpileArith (x : zs) Not = Exp (NOT x) : zs
 transpileArith [] _ = []
 transpileArith _ _ = []
-
 
 class TargetAST t where
   produceOutput :: t -> String
@@ -129,11 +134,10 @@ instance TargetAST LoopExpression where
   produceOutput = show
 
 instance TargetAST ExpressionTree where
-  produceOutput (Exp x) = produceOutput x
-  produceOutput (Prt x) = produceOutput x
-  produceOutput (Cond x) = produceOutput x
-  produceOutput (Varname x) = x
-  produceOutput (Loops x) = produceOutput x
+  produceOutput (Exp (Lit x)) = show x
+
+  produceOutput (Exp x) = (Prelude.init . Prelude.tail . show) x
+  produceOutput x = show x
 
 generateOutputString :: Either ForthErr ExpressionStack -> String
 generateOutputString (Left err) = show err
