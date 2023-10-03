@@ -111,8 +111,6 @@ transpileArith (Exp x : zs) Not = Exp (NOT x) : zs
 transpileArith [] _ = []
 transpileArith _ _ = []
 
--- transpileIf :: [ExpressionTree] -> ForthVal-> [ExpressionTree]
--- transpileIf (Exp x : Exp y : zs) Add = Exp (Addition y x) : zs
 
 class TargetAST t where
   produceOutput :: t -> String
