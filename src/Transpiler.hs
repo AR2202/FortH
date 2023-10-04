@@ -62,13 +62,13 @@ instance Show PrintExpression where
 data IfExpression = IfExp ExpressionTree ExpressionStack | IfElseExp ExpressionTree ExpressionStack ExpressionStack deriving (Read, Eq)
 
 instance Show IfExpression where
-  show (IfExp cond e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
-  show (IfElseExp cond i e) = "if " ++ produceOutput cond ++ ":\n    " ++ Prelude.unlines (Prelude.map produceOutput i) ++ "\nelse:\n    " ++ Prelude.unlines (Prelude.map produceOutput e)
+  show (IfExp cond e) = "if " ++ produceOutput cond ++ ":\n" ++ Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput e))))
+  show (IfElseExp cond i e) = "if " ++ produceOutput cond ++ ":\n" ++ Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput i)))) ++ "\nelse:\n" ++ Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput e))))
 
 data LoopExpression = Doloop ExpressionTree ExpressionTree ExpressionStack deriving (Read, Eq)
 
 instance Show LoopExpression where
-  show (Doloop start end exp) = "for i in range(" ++ produceOutput start ++ "," ++ produceOutput end ++ "):\n    " ++ Prelude.unlines (Prelude.map produceOutput exp)
+  show (Doloop start end exp) = "for i in range(" ++ produceOutput start ++ "," ++ produceOutput end ++ "):\n" ++ Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput exp))))
 
 type ExpressionStack = [ExpressionTree]
 
@@ -135,7 +135,6 @@ instance TargetAST LoopExpression where
 
 instance TargetAST ExpressionTree where
   produceOutput (Exp (Lit x)) = show x
-
   produceOutput (Exp x) = (Prelude.init . Prelude.tail . show) x
   produceOutput x = show x
 
