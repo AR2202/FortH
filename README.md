@@ -94,6 +94,97 @@ Inverts the first element of the stack. Equivalent to NOT.
 `.` prints the top element of the stack and drops it.
 `.s` prints the entire stack without dropping it.
 
+
+
+## Conditionals
+
+### IF .. THEN
+IF statements take the top off the stack and execute the code enclosed in IF and THEN iff the top stack element evaluates to TRUE.
+
+### IF .. ELSE .. THEN
+Same as IF ..THEN, but if the top stack element is FALSE, the code between ELSE and THEN is executed instead.
+
+## Loops
+
+### DO LOOP
+DO .. LOOP takes 2 elements off the stack. The top is the start of the index. The code between DO and LOOP is executed until the index reaches the value of the second stack element. Both elements get dropped. Within the loop, the index can be accessed by I.
+
+### DO +LOOP
+DO .. +LOOP is similar to DO .. LOOP, but the index is incremented by the value that is on top of the stack at the end of the Loop instead of always being incremented by 1 as in DO .. LOOP. The increment can be negative.
+
+### BEGIN .. UNTIL
+BEGIN .. UNTIL executes the code until the top of the stack evaluates to True at the end of one iteration.
+
+### Examples
+
+`10 1 DO I . LOOP`
+
+output: 123456789
+
+`10 BEGIN DUP . CR 1 - DUP 0 = UNTIL`
+
+output: 
+
+10
+
+9
+
+8
+
+7
+
+6
+
+5
+
+4
+
+3
+
+2
+
+1
+
+
+## Declaring and assigning variables
+
+Variables are declared with the VAR keyword followed by the variable_name. They are assigned a value with ! and the value is retrieved with @
+
+### Examples
+
+`VAR myvar`
+
+`5 myvar !`
+
+`myvar @`
+
+output: 5
+
+
+
+`1 myvar !`
+
+`myvar @`
+
+output: 1
+## Strings
+
+String literals can be printed with ."mystring"
+
+`."hello world"`
+
+output: hello world
+
+When storing strings, they have to consist of ASCII characters. The characters of the string are converted to their ASCII codes and the string is stored as an array of ASCII characters.  When retrieving the string, e.g. for printing, the start address and the length have to be provided to the TYPE word. S"mystring" saves mystring in memory and returns the address and length of the string on the stack. Immediately following by TYPE types the string to the terminal. If the string needs to be accessed later, both the address and the length need to be stored. 
+
+### Examples
+
+`S"hello world"`
+
+`TYPE`
+
+output: hello world
+
 ## Defining functions
 
 A function (word) is defined by:
@@ -120,7 +211,47 @@ Built in operators and words can be re-defined.
 
 output: 2
 
+`: fizzbuzz 1 DO I 15 MOD 0 = IF ."fizzbuzz" ELSE I 3 MOD 0 = IF ."fizz" ELSE I 5 MOD 0 = IF ."buzz" ELSE I . THEN THEN THEN CR LOOP ;`
+
+`16 fizzbuzz`
+
+output:
+
+1
+
+2
+
+fizz
+
+4
+
+buzz
+
+fizz
+
+7
+
+8
+
+fizz
+
+buzz
+
+11
+
+fizz
+
+13
+
+14
+
+fizzbuzz
+
+### Execution Token
+
 Prefixing the function_name by \` returns the function's execution token. The function can then be called by providing the token followed by EXECUTE.
+
+### Examples
 
 \`add1
 
@@ -130,53 +261,14 @@ output: 25
 
 output: 3
 
-## Conditionals
+### Recursion
 
-### IF .. THEN
-IF statements take the top off the stack and execute the code enclosed in IF and THEN iff the top stack element evaluates to TRUE.
-
-### IF .. ELSE .. THEN
-Same as IF ..THEN, but if the top stack element is FALSE, the code between ELSE and THEN is executed instead.
-
-## Loops
-
-### DO LOOP
-DO .. LOOP takes 2 elements off the stack. The top is the start of the index. The code between DO and LOOP is executed until the index reaches the value of the second stack element. Both elements get dropped. Within the loop, the index can be accessed by I.
-
-### DO +LOOP
-DO .. +LOOP is similar to DO .. LOOP, but the index is incremented by the value that is on top of the stack at the end of the Loop instead of always being incremented by 1 as in DO .. LOOP. The increment can be negative.
-
-### BEGIN .. UNTIL
-BEGIN .. UNTIL executes the code until the top of the stack evaluates to True at the end of one iteration.
-
-## Defining variables
-
-Variables are declared with the VAR keyword followed by the variable_name. They are assigned a value with ! and the value is retrieved with @
+Functions cannot refer to themselves in the definition body by name. Recursive functions can be defined with the RECURSE keyword in the function definition.
 
 ### Examples
 
-`VAR myvar`
+`: rec DUP . ." " DUP 10 < IF 1 + RECURSE THEN ;`
 
-`5 myvar !`
+`0 rec`
 
-`myvar @`
-
-output: 5
-
-## Strings
-
-String literals can be printed with ."mystring"
-
-`."hello world"`
-
-output: hello world
-
-When storing strings, they have to consist of ASCII characters. The characters of the string are converted to their ASCII codes and the string is stored as an array of ASCII characters.  When retrieving the string, e.g. for printing, the start address and the length have to be provided to the TYPE word. S"mystring" saves mystring in memory and returns the address and length of the string on the stack. Immediately following by TYPE types the string to the terminal. If the string needs to be accessed later, both the address and the length need to be stored. 
-
-### Examples
-
-`S"hello world"`
-
-`TYPE`
-
-output: hello world
+output: 0 1 2 3 4 5 6 7 8 9 10
