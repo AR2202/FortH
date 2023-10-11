@@ -121,6 +121,9 @@ main =
       transpilePrintExpression
       transpilePrintStringLiteral
       transpileMod
+      transpilenestedIf
+      transpilenestedIfElse
+      transpileifGreater
 
 ---------Test for initial environment----------
 -----------------------------------------------
@@ -954,6 +957,39 @@ transpilePrintStringLiteral =
       it
         "has the print statement around the string"
         printStringLiteral
+
+ifGreater :: Expectation
+ifGreater = parseTranspileGenerateOutputFromText "3 2 > IF .\"hello world\" THEN" `shouldBe` "if 3 > 2:\n    print(\"hello world\")\n"
+
+transpileifGreater :: SpecWith()
+transpileifGreater =
+  describe "parseTranspileOutputFromText" $
+    context "when transpiling if greater statements" $
+      it
+        "indents the blocks correctly"
+        ifGreater
+
+nestedIf :: Expectation
+nestedIf = parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 .THEN THEN" `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n"
+
+transpilenestedIf :: SpecWith()
+transpilenestedIf =
+  describe "parseTranspileOutputFromText" $
+    context "when transpiling nested if statements" $
+      it
+        "indents the blocks correctly"
+        nestedIf
+
+nestedIfElse :: Expectation
+nestedIfElse = parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 . ELSE 3 . THEN ELSE 1 . THEN" `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n    else:\n        print(3)\nelse:\n    print(1)\n"
+
+transpilenestedIfElse :: SpecWith()
+transpilenestedIfElse =
+  describe "parseTranspileOutputFromText" $
+    context "when transpiling nested if else statements" $
+      it
+        "indents the blocks correctly"
+        nestedIfElse
 -----------Helper functions------------
 ---------------------------------------
 

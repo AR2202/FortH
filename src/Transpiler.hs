@@ -62,8 +62,8 @@ instance Show PrintExpression where
 data IfExpression = IfExp ExpressionTree ExpressionStack | IfElseExp ExpressionTree ExpressionStack ExpressionStack deriving (Read, Eq)
 
 instance Show IfExpression where
-  show (IfExp cond e) = "if " ++ produceOutput cond ++ ":\n" ++ Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput e))))
-  show (IfElseExp cond i e) = "if " ++ produceOutput cond ++ ":\n" ++ Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput i)))) ++ "\nelse:\n" ++ Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput e))))
+  show (IfExp cond e) = "if " ++ produceOutput cond ++ ":\n" ++ Prelude.init(Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput e)))))
+  show (IfElseExp cond i e) = "if " ++ produceOutput cond ++ ":\n" ++ Prelude.init(Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput i))))) ++ "\nelse:\n" ++ Prelude.init(Prelude.unlines (Prelude.map ("    " ++) (Prelude.lines (Prelude.unlines (Prelude.map produceOutput e)))))
 
 data LoopExpression = Doloop ExpressionTree ExpressionTree ExpressionStack deriving (Read, Eq)
 
@@ -86,7 +86,7 @@ transpileExpressionTree (x : xs) = go [] (x : xs) []
     go (Exp x : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (Print x) : returnstack)
     go (Varname s : xs) (PrintCommand : zs) returnstack = go xs zs (Prt (PrintVar s) : returnstack)
     go exps (Arith Not : xs) returnstack = go (transpileArith exps Not) xs returnstack
-    go (x : xs) (If ifvals : zs) returnstack = case transpileExpressionTree ifvals of
+    go (x : xs) (If ifvals : zs) returnstack = case lookupTranspile ifvals of
       Left err -> Left err
       Right etree -> go xs zs (Cond (IfExp x etree) : returnstack)
     go (x : xs) (IfElse ifvals elsevals : zs) returnstack = case lookupTranspile ifvals of
