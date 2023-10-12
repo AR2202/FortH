@@ -421,10 +421,11 @@ evalPlusLoop env loop =
     (x : y : xs) -> Right (set stack xs env) >>= go x y (loop ^. loopbody)
   where
     go index stop forthvals env' =
-      case _stack env' of
-        [] -> Left StackUnderflow
-        (0 : xs) -> Left SyntaxError
-        (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index <= stop) then Right env' else eval (save2Mem 0 index env') (Forthvals forthvals) >>= go (index + step) stop forthvals
+      case  fmap _stack (eval env' (Forthvals forthvals)) of
+        Left e -> Left e
+        Right [] -> Left StackUnderflow
+        Right (0 : xs) -> Left SyntaxError
+        Right  (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index <= stop) then Right env' else eval (save2Mem 0 index env') (Forthvals forthvals) >>= go (index + step) stop forthvals
 
 evalUntilLoop :: Env -> Loop -> Either ForthErr Env
 evalUntilLoop env loop = case eval env (Forthvals (loop ^. loopbody)) of

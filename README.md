@@ -22,6 +22,10 @@ FortHi>
 
 Type a line of Forth code and press Enter to interpret it.
 
+## Case sensitive 
+
+This implementation of Forth is case-sensitive and keywords are in ALL CAPITALS
+
 ## Simple Arithmetic
 
 Forth uses postfix notation.
@@ -94,8 +98,35 @@ Inverts the first element of the stack. Equivalent to NOT.
 `.` prints the top element of the stack and drops it.
 `.s` prints the entire stack without dropping it.
 
+### EXAMPLES
 
+`1 2 3`
 
+`.s`
+
+output:
+
+1
+
+2
+
+3
+
+`1 2 3`
+
+`DUP`
+
+`.s`
+
+output: 
+
+1
+
+2
+
+3
+
+3
 ## Conditionals
 
 ### IF .. THEN
@@ -145,6 +176,10 @@ output:
 
 1
 
+
+`50 0 DO  I .  5 +LOOP`
+
+output: 051015202530354045
 
 ## Declaring and assigning variables
 
