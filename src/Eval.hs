@@ -75,7 +75,8 @@ initialNames =
         "I",
         "EXECUTE",
         "EMIT",
-        "FILE-POSITION"
+        "FILE-POSITION",
+        "CELL"
       ]
       [0 ..]
 
@@ -109,7 +110,8 @@ initialDefs =
         Forthvals [Number 0, Mem Retrieve],
         DictLookup,
         Ascii,
-        Forthvals [Mem Retrieve, Number 0]
+        Forthvals [Mem Retrieve, Number 0],
+        Forthvals [Number 1, Mem Cellsize]
       ]
 
 initialEnv :: Env
