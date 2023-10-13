@@ -205,7 +205,7 @@ output: 1
 
 ## Arrays
 
-Arrays are contiguous chunks of memory. They are created in the same way as variables. Additional memory can be allotted by CELLS ALLOT. They are initialized to 0. Values can be assigned to each cell individually with ! or to several cells at once using the , operator. The first element of the array can be retrieved like a variable with @. The subsequent cells' values can be retieved by adding CELL or CELLS to the start position
+Arrays are contiguous chunks of memory. They are created in the same way as variables. Additional memory can be allotted by CELLS ALLOT. They are initialized to 0. Values can be assigned to each cell individually with ! or to several cells at once using the , operator. The first element of the array can be retrieved like a variable with @. The subsequent cells' values can be retieved by adding CELL or CELLS to the start position. The DUMP word can be used to print out several values of an array.
 ### Examples
 
 `VARIABLE myarray`
@@ -218,17 +218,32 @@ output: 0
 
 `myarray 1 , 2 , 3 , 4 , 5 ,`
 
-`myarray @`
+`myarray @ .`
 
 output: 1
 
-`myarray CELL + @`
+`myarray CELL + @ .`
 
 output: 2
 
-`myarray 2 CELLS + @`
+`myarray 2 CELLS + @ .`
 
 output: 3
+
+`myarray 5 DUMP`
+
+output:
+
+1
+
+2
+
+3
+
+4
+
+5
+
 ## Strings
 
 String literals can be printed with ."mystring"

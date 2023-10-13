@@ -76,7 +76,8 @@ initialNames =
         "EXECUTE",
         "EMIT",
         "FILE-POSITION",
-        "CELL"
+        "CELL",
+        "DUMP"
       ]
       [0 ..]
 
@@ -111,7 +112,8 @@ initialDefs =
         DictLookup,
         Ascii,
         Forthvals [Mem Retrieve, Number 0],
-        Forthvals [Number 1, Mem Cellsize]
+        Forthvals [Number 1, Mem Cellsize],
+        Forthvals [Mem Cellsize, Manip Over, Arith Add, Manip Swap, PlusLoop (Loop [PrintStringLiteral "\n", Word "I", Mem Retrieve, PrintCommand, Number 1, Mem Cellsize])]
       ]
 
 initialEnv :: Env
@@ -314,7 +316,7 @@ evalOver env =
   case _stack env of
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
-    x : y : zs -> Right $ env {_stack = x : y : x : zs}
+    x : y : zs -> Right $ env {_stack = y : x : y : zs}
 
 evalRot :: Env -> Either ForthErr Env
 evalRot env =
@@ -423,11 +425,11 @@ evalPlusLoop env loop =
     (x : y : xs) -> Right (set stack xs env) >>= go x y (loop ^. loopbody)
   where
     go index stop forthvals env' =
-      case  fmap _stack (eval env' (Forthvals forthvals)) of
+      case fmap _stack (eval env' (Forthvals forthvals)) of
         Left e -> Left e
         Right [] -> Left StackUnderflow
         Right (0 : xs) -> Left SyntaxError
-        Right  (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index <= stop) then Right env' else eval (save2Mem 0 index env') (Forthvals forthvals) >>= go (index + step) stop forthvals
+        Right (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index <= stop) then Right env' else eval (save2Mem 0 index env') (Forthvals forthvals) >>= go (index + step) stop forthvals
 
 evalUntilLoop :: Env -> Loop -> Either ForthErr Env
 evalUntilLoop env loop = case eval env (Forthvals (loop ^. loopbody)) of
@@ -462,7 +464,7 @@ evalMemComma env =
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
     x : y : zs ->
-      Right $ save2Mem y x $ pushToStack (y + env ^. memorycell) env
+      Right $ save2Mem y x  $ pushToStack (y + env ^. memorycell) $ dropStackTop $ dropStackTop env
 
 -- this function will allocate contiguous memory to the array at the memory location regardless of whether it is already written
 
@@ -481,7 +483,7 @@ evalMemCellsize :: Env -> Either ForthErr Env
 evalMemCellsize env =
   case _stack env of
     [] -> Left StackUnderflow
-    x : xs -> Right $ pushToStack (x * env ^. memorycell) env
+    x : xs -> Right $ pushToStack (x * env ^. memorycell) $ dropStackTop env
 
 evalMemRetrieve :: Env -> Either ForthErr Env
 evalMemRetrieve env =

@@ -97,8 +97,11 @@ main =
       evalStoreRetrieve
       evalCellAllot
       evalCommaStore
+      evalCommaStoreTwice
+      --evalCommaStoreDump
       errorOnAccessingUninitializedMemory
       errorOnAccessingMemoryWithoutAddress
+      errorOnDumpUninitializedMemory
       -- print
       evalPrintRemovedFromStack
       evalPrintAppendedToPrintStr
@@ -274,7 +277,7 @@ parseSingleSemicolon =
         singleSemicolon
 
 ifInsideDef :: Expectation
-ifInsideDef = tokenizeAndParseTest " : afunction 3 = IF .\"equal to 3\" THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "afunction" [Number 3, Word "=", If[PrintStringLiteral "equal to 3"]])]
+ifInsideDef = tokenizeAndParseTest " : afunction 3 = IF .\"equal to 3\" THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "afunction" [Number 3, Word "=", If [PrintStringLiteral "equal to 3"]])]
 
 parseifInsideDef :: SpecWith ()
 parseifInsideDef =
@@ -283,8 +286,9 @@ parseifInsideDef =
       it
         "should parse it as a definition with the if in the body"
         ifInsideDef
+
 recurseInsideDef :: Expectation
-recurseInsideDef = tokenizeAndParseTest " : arecursivefunction DUP 3 < IF 1 + RECURSE THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "arecursivefunction" [Word "DUP", Number 3, Word "<", If[Number 1, Word "+", Recurse]])]
+recurseInsideDef = tokenizeAndParseTest " : arecursivefunction DUP 3 < IF 1 + RECURSE THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "arecursivefunction" [Word "DUP", Number 3, Word "<", If [Number 1, Word "+", Recurse]])]
 
 parseRecInsideDef :: SpecWith ()
 parseRecInsideDef =
@@ -293,6 +297,7 @@ parseRecInsideDef =
       it
         "should parse it as a definition with the Recurse word in the body"
         recurseInsideDef
+
 -- IF
 ifvalsParsed :: Expectation
 ifvalsParsed = tokenizeAndParseTest " IF 2 + THEN" `shouldBe` Right [If [Number 2, Word "+"]]
@@ -338,9 +343,8 @@ parseIFInsideElse =
         "should have the second if inside the else block"
         ifInsideElse
 
-
 ifElseInsideElse :: Expectation
-ifElseInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP ELSE 2 . THEN THEN" `shouldBe` Right [IfElse [Number 1] [IfElse [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}][Number 2, PrintCommand]]]
+ifElseInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP ELSE 2 . THEN THEN" `shouldBe` Right [IfElse [Number 1] [IfElse [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}] [Number 2, PrintCommand]]]
 
 parseIFElseInsideElse :: SpecWith ()
 parseIFElseInsideElse =
@@ -349,6 +353,7 @@ parseIFElseInsideElse =
       it
         "should have the second if else inside the else block"
         ifElseInsideElse
+
 -----------Tests for evaluation-------
 --------------------------------------
 -- defining new words
@@ -447,7 +452,7 @@ evalDup =
 stackOver :: Expectation
 stackOver =
   stackState (eval envWithStackNumbers (Manip Over))
-    `shouldBe` Right [1, 2, 1, 4]
+    `shouldBe` Right [2, 1, 2, 4]
 
 evalOver :: SpecWith ()
 evalOver =
@@ -749,6 +754,28 @@ evalCommaStore =
         "leaves the next memory address on the stack"
         commaStoreLeavesNewAddressOnStack
 
+commaStoreDump :: Expectation
+commaStoreDump = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5,Mem CommaStore, Number 2 , Number 2 , Word "DUMP"])) `shouldBe` Right [4,4]
+
+evalCommaStoreDump :: SpecWith ()
+evalCommaStoreDump =
+  describe "eval" $
+    context "when evaluating DUMP" $
+      it
+        "takes 2 numbers off the stack"
+        commaStoreDump
+
+commaStoreTwice :: Expectation
+commaStoreTwice = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5, Mem CommaStore])) `shouldBe` Right [4,4]
+
+evalCommaStoreTwice :: SpecWith ()
+evalCommaStoreTwice =
+  describe "eval" $
+    context "when evaluating comma twice" $
+      it
+        "leaves the next memory address on the stack"
+        commaStoreTwice
+
 accessingUninitializedMemoryError :: Expectation
 accessingUninitializedMemoryError = eval envWithStackNumbers (Mem Retrieve) `shouldBe` Left MemoryAccessError
 
@@ -772,6 +799,18 @@ errorOnAccessingMemoryWithoutAddress =
     $ it
       "throws StackUnderFlowError"
       accessingMemoryWithoutAddressError
+
+dumpUninitializedMemoryError :: Expectation
+dumpUninitializedMemoryError = eval envWithStackNumbers (Word "DUMP") `shouldBe` Left MemoryAccessError
+
+errorOnDumpUninitializedMemory :: SpecWith ()
+errorOnDumpUninitializedMemory =
+  describe "eval"
+    $ context
+      "when using DUMP word on uninitialized memory"
+    $ it
+      "throws MemoryAccessError"
+      dumpUninitializedMemoryError
 
 -- Environment
 -------------
@@ -917,7 +956,7 @@ evalTwithPureValue =
 subtractAfterAdd :: Expectation
 subtractAfterAdd = parseTranspileGenerateOutputFromText " 1 2 + 3 -" `shouldBe` "(1 + 2) - 3\n"
 
-transpileAddAndSubtract :: SpecWith()
+transpileAddAndSubtract :: SpecWith ()
 transpileAddAndSubtract =
   describe "parseTranspileOutputFromText" $
     context "when transpiling an arithmetic expression" $
@@ -928,7 +967,7 @@ transpileAddAndSubtract =
 modOrderCorrect :: Expectation
 modOrderCorrect = parseTranspileGenerateOutputFromText "3 2 MOD 1 =" `shouldBe` "(3 % 2) == 1\n"
 
-transpileMod :: SpecWith()
+transpileMod :: SpecWith ()
 transpileMod =
   describe "parseTranspileOutputFromText" $
     context "when transpiling MOD" $
@@ -939,7 +978,7 @@ transpileMod =
 printExpression :: Expectation
 printExpression = parseTranspileGenerateOutputFromText " 1 2 + 3 - . " `shouldBe` "print((1 + 2) - 3)\n"
 
-transpilePrintExpression :: SpecWith()
+transpilePrintExpression :: SpecWith ()
 transpilePrintExpression =
   describe "parseTranspileOutputFromText" $
     context "when transpiling and a print statement of an arithmetic expression" $
@@ -950,7 +989,7 @@ transpilePrintExpression =
 printStringLiteral :: Expectation
 printStringLiteral = parseTranspileGenerateOutputFromText " .\"hello world\"" `shouldBe` "print(\"hello world\")\n"
 
-transpilePrintStringLiteral :: SpecWith()
+transpilePrintStringLiteral :: SpecWith ()
 transpilePrintStringLiteral =
   describe "parseTranspileOutputFromText" $
     context "when transpiling a print statement of a string literal" $
@@ -961,7 +1000,7 @@ transpilePrintStringLiteral =
 ifGreater :: Expectation
 ifGreater = parseTranspileGenerateOutputFromText "3 2 > IF .\"hello world\" THEN" `shouldBe` "if 3 > 2:\n    print(\"hello world\")\n"
 
-transpileifGreater :: SpecWith()
+transpileifGreater :: SpecWith ()
 transpileifGreater =
   describe "parseTranspileOutputFromText" $
     context "when transpiling if greater statements" $
@@ -972,7 +1011,7 @@ transpileifGreater =
 nestedIf :: Expectation
 nestedIf = parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 .THEN THEN" `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n"
 
-transpilenestedIf :: SpecWith()
+transpilenestedIf :: SpecWith ()
 transpilenestedIf =
   describe "parseTranspileOutputFromText" $
     context "when transpiling nested if statements" $
@@ -983,13 +1022,14 @@ transpilenestedIf =
 nestedIfElse :: Expectation
 nestedIfElse = parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 . ELSE 3 . THEN ELSE 1 . THEN" `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n    else:\n        print(3)\nelse:\n    print(1)\n"
 
-transpilenestedIfElse :: SpecWith()
+transpilenestedIfElse :: SpecWith ()
 transpilenestedIfElse =
   describe "parseTranspileOutputFromText" $
     context "when transpiling nested if else statements" $
       it
         "indents the blocks correctly"
         nestedIfElse
+
 -----------Helper functions------------
 ---------------------------------------
 
