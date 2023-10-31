@@ -29,6 +29,17 @@ main =
       propInitialStack
 
       environmentInitialDef
+
+      -- Tokenizing Tests
+      --------------------
+      -- Arithmetic
+      tokenizeAddition
+      -- loop
+      tokenizeLoop
+      --if
+      tokenizeDoLoopWithIF
+
+
       -- Parsing Tests
       ----------
       -- Arithmetic
@@ -53,6 +64,7 @@ main =
       parseIFInsideIf
       parseIFInsideElse
       parseDoLoopWithIF
+      parsePLoopWithIF
       parseIFElseInsideElse
 
       -- Tree-walk Interpreter (Eval) Tests
@@ -151,7 +163,40 @@ prop_initial_stack_empty op = eval initialEnv (Arith op) == Left StackUnderflow
 propInitialStack :: SpecWith ()
 propInitialStack = describe "initialEnv" $ do
   it "should start with an empty stack" $ property prop_initial_stack_empty
+-----------------------------------------
+-----------Tests for tokinizer/lexing----
+-----------------------------------------
+tokenizeAdd :: Expectation
+tokenizeAdd = tokenizeFromText "test" "1 2 +" `shouldBe` Right [Num "1", Num "2", Operator '+']
 
+tokenizeAddition :: SpecWith ()
+tokenizeAddition =
+  describe "tokenizer" $
+    context "when tokenizing an addition expression" $
+      it
+        "should return Num and Operator Tokens"
+        tokenizeAdd
+tokenizeDoLoop :: Expectation
+tokenizeDoLoop = tokenizeFromText "test" "10 1 DO I . LOOP" `shouldBe` Right [Num "10", Num "1", DOLOOP [Ide "I", PRINT]]
+
+tokenizeLoop :: SpecWith ()
+tokenizeLoop =
+  describe "tokenizer" $
+    context "when tokenizing a do loop" $
+      it
+        "should return Doloop Token and loop body"
+        tokenizeDoLoop
+ifInsidedoLoopToken :: Expectation
+ifInsidedoLoopToken = tokenizeFromText "test" "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP" `shouldBe` Right [Num "10", Num "1", DOLOOP   [Ide "I", Num "3", Operator '=', IF [PRINT, STRING "equal to 3"]]]
+
+tokenizeDoLoopWithIF :: SpecWith ()
+tokenizeDoLoopWithIF =
+  describe "tokenizer" $
+    context "when lexing a Do Loop with an If statement" $
+      it
+        "should tokenize it as a loop with the if in the body"
+        ifInsidedoLoopToken
+------------------------------------
 -----------Tests for parsing----------
 --------------------------------------
 parseIdExists :: Expectation
@@ -197,6 +242,17 @@ parseDoLoopWithIF =
       it
         "should parse it as a loop with the if in the body"
         ifInsidedoLoop
+
+ifInsidepLoop :: Expectation
+ifInsidepLoop = tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  2 +LOOP" `shouldBe` Right [Number 10, Number 1, PlusLoop Loop {_loopbody = [Word "I", Number 3, Word "=", If [PrintStringLiteral "equal to 3"], Number 2]}]
+
+parsePLoopWithIF :: SpecWith ()
+parsePLoopWithIF =
+  describe "parseFromText" $
+    context "when parsing a Plus Loop with an If statement" $
+      it
+        "should parse it as a loop with the if in the body"
+        ifInsidepLoop
 
 plusLoopWithI :: Expectation
 plusLoopWithI = tokenizeAndParseTest "10 1 DO I . +LOOP" `shouldBe` Right [Number 10, Number 1, PlusLoop Loop {_loopbody = [Word "I", PrintCommand]}]
@@ -649,9 +705,8 @@ evalPlusLoopExecuted =
 
 ploopIncreaseIndex :: Expectation
 ploopIncreaseIndex =
-  stackState (eval envWithStackNumbers (Forthvals [Number 5, Number 2, PlusLoop Loop {_loopbody = [Number 3,Number 2]}]))
-    `shouldBe` Right [3, 1, 2, 4]
-
+  stackState (eval envWithStackNumbers (Forthvals [Number 5, Number 2, PlusLoop Loop {_loopbody = [Number 3, Number 2]}]))
+    `shouldBe` Right [3, 3, 1, 2, 4]
 
 evalPlusLoopIncreasesIndex :: SpecWith ()
 evalPlusLoopIncreasesIndex =
@@ -659,8 +714,7 @@ evalPlusLoopIncreasesIndex =
     context "when evaluating plus loop" $
       it
         "increases the index by number on top of stack"
-        ploopIncreaseIndex 
-
+        ploopIncreaseIndex
 
 untilloopRunUntilTrue :: Expectation
 untilloopRunUntilTrue =
