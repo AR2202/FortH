@@ -113,7 +113,7 @@ initialDefs =
         Ascii,
         Forthvals [Mem Retrieve, Number 0],
         Forthvals [Number 1, Mem Cellsize],
-        Forthvals [Mem Cellsize, Manip Over, Arith Add, Manip Swap, PlusLoop (Loop [PrintStringLiteral "\n", Word "I", Mem Retrieve, PrintCommand, Number 1, Mem Cellsize]), Manip Drop]
+        Forthvals [Mem Cellsize, Manip Over, Arith Add, Manip Swap, PlusLoop (Loop [PrintStringLiteral "\n", Word "I", Mem Retrieve, PrintCommand, Number 1, Mem Cellsize])]
       ]
 
 initialEnv :: Env
