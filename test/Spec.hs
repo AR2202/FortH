@@ -98,7 +98,7 @@ main =
       evalCellAllot
       evalCommaStore
       evalCommaStoreTwice
-      --evalCommaStoreDump
+      evalCommaStoreDump
       errorOnAccessingUninitializedMemory
       errorOnAccessingMemoryWithoutAddress
       errorOnDumpUninitializedMemory
@@ -636,8 +636,8 @@ evalIndexInLoop =
 
 ploopExecuted :: Expectation
 ploopExecuted =
-  stackState (eval envWithStackTop0 (PlusLoop Loop {_loopbody = [Number 1]}))
-    `shouldBe` Right [1, 2, 4]
+  stackState (eval envWithStackTop0 (PlusLoop Loop {_loopbody = [Number 4, Number 1]}))
+    `shouldBe` Right [4, 2, 4]
 
 evalPlusLoopExecuted :: SpecWith ()
 evalPlusLoopExecuted =
@@ -649,8 +649,9 @@ evalPlusLoopExecuted =
 
 ploopIncreaseIndex :: Expectation
 ploopIncreaseIndex =
-  stackState (eval envWithStackNumbers (Forthvals [Number 5, Number 2, PlusLoop Loop {_loopbody = [Number 2]}]))
-    `shouldBe` Right [2, 2, 1, 2, 4]
+  stackState (eval envWithStackNumbers (Forthvals [Number 5, Number 2, PlusLoop Loop {_loopbody = [Number 3,Number 2]}]))
+    `shouldBe` Right [3, 1, 2, 4]
+
 
 evalPlusLoopIncreasesIndex :: SpecWith ()
 evalPlusLoopIncreasesIndex =
@@ -658,7 +659,8 @@ evalPlusLoopIncreasesIndex =
     context "when evaluating plus loop" $
       it
         "increases the index by number on top of stack"
-        ploopIncreaseIndex
+        ploopIncreaseIndex 
+
 
 untilloopRunUntilTrue :: Expectation
 untilloopRunUntilTrue =
@@ -755,7 +757,7 @@ evalCommaStore =
         commaStoreLeavesNewAddressOnStack
 
 commaStoreDump :: Expectation
-commaStoreDump = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5,Mem CommaStore, Number 2 , Number 2 , Word "DUMP"])) `shouldBe` Right [4,4]
+commaStoreDump = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5, Mem CommaStore, Number 2, Number 2, Word "DUMP"])) `shouldBe` Right [4, 4]
 
 evalCommaStoreDump :: SpecWith ()
 evalCommaStoreDump =
@@ -766,7 +768,7 @@ evalCommaStoreDump =
         commaStoreDump
 
 commaStoreTwice :: Expectation
-commaStoreTwice = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5, Mem CommaStore])) `shouldBe` Right [4,4]
+commaStoreTwice = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5, Mem CommaStore])) `shouldBe` Right [4, 4]
 
 evalCommaStoreTwice :: SpecWith ()
 evalCommaStoreTwice =

@@ -113,7 +113,7 @@ initialDefs =
         Ascii,
         Forthvals [Mem Retrieve, Number 0],
         Forthvals [Number 1, Mem Cellsize],
-        Forthvals [Mem Cellsize, Manip Over, Arith Add, Manip Swap, PlusLoop (Loop [PrintStringLiteral "\n", Word "I", Mem Retrieve, PrintCommand, Number 1, Mem Cellsize])]
+        Forthvals [Mem Cellsize, Manip Over, Arith Add, Manip Swap, PlusLoop (Loop [PrintStringLiteral "\n", Word "I", Mem Retrieve, PrintCommand, Number 1, Mem Cellsize]), Manip Drop]
       ]
 
 initialEnv :: Env
@@ -424,12 +424,15 @@ evalPlusLoop env loop =
     [x] -> Left StackUnderflow
     (x : y : xs) -> Right (set stack xs env) >>= go x y (loop ^. loopbody)
   where
-    go index stop forthvals env' =
-      case fmap _stack (eval env' (Forthvals forthvals)) of
-        Left e -> Left e
-        Right [] -> Left StackUnderflow
-        Right (0 : xs) -> Left SyntaxError
-        Right (step : xs) -> if (step > 0 && index >= stop) || (step < 0 && index <= stop) then Right env' else eval (save2Mem 0 index env') (Forthvals forthvals) >>= go (index + step) stop forthvals
+    go index stop forthvals env'
+      | index == stop = Right env'
+      | otherwise =
+          case eval (save2Mem 0 index env') (Forthvals forthvals) of
+            Left e -> Left e
+            Right env'' -> case  _stack env'' of
+              [] -> Left StackUnderflow
+              (0 : xs) -> Left SyntaxError
+              (step : xs) -> if (step > 0 && (index + step) >= stop) || (step < 0 && (index + stop) <= stop) then Right (dropStackTop env'') else  go (index + step) stop forthvals ( dropStackTop env'')
 
 evalUntilLoop :: Env -> Loop -> Either ForthErr Env
 evalUntilLoop env loop = case eval env (Forthvals (loop ^. loopbody)) of
@@ -464,7 +467,7 @@ evalMemComma env =
     [] -> Left StackUnderflow
     [x] -> Left StackUnderflow
     x : y : zs ->
-      Right $ save2Mem y x  $ pushToStack (y + env ^. memorycell) $ dropStackTop $ dropStackTop env
+      Right $ save2Mem y x $ pushToStack (y + env ^. memorycell) $ dropStackTop $ dropStackTop env
 
 -- this function will allocate contiguous memory to the array at the memory location regardless of whether it is already written
 
