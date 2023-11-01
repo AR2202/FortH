@@ -34,11 +34,13 @@ main =
       --------------------
       -- Arithmetic
       tokenizeAddition
+      -- Ide
+      tokenizeIdeWithNum
+      tokenizenumWithIde
       -- loop
       tokenizeLoop
-      --if
+      -- if
       tokenizeDoLoopWithIF
-
 
       -- Parsing Tests
       ----------
@@ -163,11 +165,14 @@ prop_initial_stack_empty op = eval initialEnv (Arith op) == Left StackUnderflow
 propInitialStack :: SpecWith ()
 propInitialStack = describe "initialEnv" $ do
   it "should start with an empty stack" $ property prop_initial_stack_empty
+
 -----------------------------------------
 -----------Tests for tokinizer/lexing----
 -----------------------------------------
 tokenizeAdd :: Expectation
-tokenizeAdd = tokenizeFromText "test" "1 2 +" `shouldBe` Right [Num "1", Num "2", Operator '+']
+tokenizeAdd =
+  tokenizeFromText "test" "1 2 +"
+    `shouldBe` Right [Num "1", Num "2", Operator '+']
 
 tokenizeAddition :: SpecWith ()
 tokenizeAddition =
@@ -176,8 +181,11 @@ tokenizeAddition =
       it
         "should return Num and Operator Tokens"
         tokenizeAdd
+
 tokenizeDoLoop :: Expectation
-tokenizeDoLoop = tokenizeFromText "test" "10 1 DO I . LOOP" `shouldBe` Right [Num "10", Num "1", DOLOOP [Ide "I", PRINT]]
+tokenizeDoLoop =
+  tokenizeFromText "test" "10 1 DO I . LOOP"
+    `shouldBe` Right [Num "10", Num "1", DOLOOP [Ide "I", PRINT]]
 
 tokenizeLoop :: SpecWith ()
 tokenizeLoop =
@@ -186,8 +194,15 @@ tokenizeLoop =
       it
         "should return Doloop Token and loop body"
         tokenizeDoLoop
+
 ifInsidedoLoopToken :: Expectation
-ifInsidedoLoopToken = tokenizeFromText "test" "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP" `shouldBe` Right [Num "10", Num "1", DOLOOP   [Ide "I", Num "3", Operator '=', IF [PRINT, STRING "equal to 3"]]]
+ifInsidedoLoopToken =
+  tokenizeFromText "test" "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP"
+    `shouldBe` Right
+      [ Num "10",
+        Num "1",
+        DOLOOP [Ide "I", Num "3", Operator '=', IF [PRINT, STRING "equal to 3"]]
+      ]
 
 tokenizeDoLoopWithIF :: SpecWith ()
 tokenizeDoLoopWithIF =
@@ -196,11 +211,40 @@ tokenizeDoLoopWithIF =
       it
         "should tokenize it as a loop with the if in the body"
         ifInsidedoLoopToken
+
+ideWithNum :: Expectation
+ideWithNum =
+  tokenizeFromText "test" "var10 var6 v3var"
+    `shouldBe` Right [Ide "var10", Ide "var6", Ide "v3var"]
+
+tokenizeIdeWithNum :: SpecWith ()
+tokenizeIdeWithNum =
+  describe "tokenizer" $
+    context "when lexing a word with a number in it" $
+      it
+        "should tokenize it as an identifier and not a number"
+        ideWithNum
+
+ideStartsWithNum :: Expectation
+ideStartsWithNum =
+  tokenizeFromText "test" "10var 10+"
+    `shouldBe` Right [Ide "10var", Num "10", Operator '+']
+
+tokenizenumWithIde :: SpecWith ()
+tokenizenumWithIde =
+  describe "tokenizer" $
+    context "when lexing a word with a number at the beginning" $
+      it
+        "should tokenize it as  an identifier"
+        ideStartsWithNum
+
 ------------------------------------
 -----------Tests for parsing----------
 --------------------------------------
 parseIdExists :: Expectation
-parseIdExists = parse ideToken "file" "aword" `shouldBe` Right (Ide "aword")
+parseIdExists =
+  parse ideToken "file" "aword"
+    `shouldBe` Right (Ide "aword")
 
 parseIdentifier :: SpecWith ()
 parseIdentifier =
@@ -210,7 +254,9 @@ parseIdentifier =
       parseIdExists
 
 tokenizeAndParseAdd :: Expectation
-tokenizeAndParseAdd = (parseFromText "test" "1 2 +") `shouldBe` Right [Number 1, Number 2, Word "+"]
+tokenizeAndParseAdd =
+  parseFromText "test" "1 2 +"
+    `shouldBe` Right [Number 1, Number 2, Word "+"]
 
 parseAdd :: SpecWith ()
 parseAdd =
@@ -222,7 +268,9 @@ parseAdd =
 
 -- loops
 doLoopWithI :: Expectation
-doLoopWithI = tokenizeAndParseTest "10 1 DO I . LOOP" `shouldBe` Right [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]
+doLoopWithI =
+  tokenizeAndParseTest "10 1 DO I . LOOP"
+    `shouldBe` Right [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]
 
 parseDoLoopWithI :: SpecWith ()
 parseDoLoopWithI =
@@ -233,7 +281,13 @@ parseDoLoopWithI =
         doLoopWithI
 
 ifInsidedoLoop :: Expectation
-ifInsidedoLoop = tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP" `shouldBe` Right [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", Number 3, Word "=", If [PrintStringLiteral "equal to 3"]]}]
+ifInsidedoLoop =
+  tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  LOOP"
+    `shouldBe` Right
+      [ Number 10,
+        Number 1,
+        DoLoop Loop {_loopbody = [Word "I", Number 3, Word "=", If [PrintStringLiteral "equal to 3"]]}
+      ]
 
 parseDoLoopWithIF :: SpecWith ()
 parseDoLoopWithIF =
@@ -244,7 +298,13 @@ parseDoLoopWithIF =
         ifInsidedoLoop
 
 ifInsidepLoop :: Expectation
-ifInsidepLoop = tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  2 +LOOP" `shouldBe` Right [Number 10, Number 1, PlusLoop Loop {_loopbody = [Word "I", Number 3, Word "=", If [PrintStringLiteral "equal to 3"], Number 2]}]
+ifInsidepLoop =
+  tokenizeAndParseTest "10 1 DO I 3 = IF .\"equal to 3\" THEN  2 +LOOP"
+    `shouldBe` Right
+      [ Number 10,
+        Number 1,
+        PlusLoop Loop {_loopbody = [Word "I", Number 3, Word "=", If [PrintStringLiteral "equal to 3"], Number 2]}
+      ]
 
 parsePLoopWithIF :: SpecWith ()
 parsePLoopWithIF =
@@ -255,7 +315,13 @@ parsePLoopWithIF =
         ifInsidepLoop
 
 plusLoopWithI :: Expectation
-plusLoopWithI = tokenizeAndParseTest "10 1 DO I . +LOOP" `shouldBe` Right [Number 10, Number 1, PlusLoop Loop {_loopbody = [Word "I", PrintCommand]}]
+plusLoopWithI =
+  tokenizeAndParseTest "10 1 DO I . +LOOP"
+    `shouldBe` Right
+      [ Number 10,
+        Number 1,
+        PlusLoop Loop {_loopbody = [Word "I", PrintCommand]}
+      ]
 
 parsePLoopWithI :: SpecWith ()
 parsePLoopWithI =
@@ -266,7 +332,12 @@ parsePLoopWithI =
         plusLoopWithI
 
 untilLoopWithAdd :: Expectation
-untilLoopWithAdd = tokenizeAndParseTest "1 BEGIN 1 + DUP 10 = UNTIL" `shouldBe` Right [Number 1, UntilLoop Loop {_loopbody = [Number 1, Word "+", Word "DUP", Number 10, Word "="]}]
+untilLoopWithAdd =
+  tokenizeAndParseTest "1 BEGIN 1 + DUP 10 = UNTIL"
+    `shouldBe` Right
+      [ Number 1,
+        UntilLoop Loop {_loopbody = [Number 1, Word "+", Word "DUP", Number 10, Word "="]}
+      ]
 
 parseUntilLoop :: SpecWith ()
 parseUntilLoop =
@@ -277,7 +348,9 @@ parseUntilLoop =
         untilLoopWithAdd
 
 untilLoopParseErr :: Expectation
-untilLoopParseErr = tokenizeAndParseTest "1 Do 1 + DUP 10 = UNTIL" `shouldBe` Left ParseErr
+untilLoopParseErr =
+  tokenizeAndParseTest "1 Do 1 + DUP 10 = UNTIL"
+    `shouldBe` Left ParseErr
 
 parseErrUntilLoop :: SpecWith ()
 parseErrUntilLoop =
@@ -288,7 +361,9 @@ parseErrUntilLoop =
         untilLoopParseErr
 
 incompleteLoopSyntaxError :: Expectation
-incompleteLoopSyntaxError = tokenizeAndParseTest "10 1 DO I ." `shouldBe` Left SyntaxError
+incompleteLoopSyntaxError =
+  tokenizeAndParseTest "10 1 DO I ."
+    `shouldBe` Left SyntaxError
 
 parseUnclosedLoop :: SpecWith ()
 parseUnclosedLoop =
@@ -300,7 +375,9 @@ parseUnclosedLoop =
 
 -- Definitions
 defNewWord :: Expectation
-defNewWord = tokenizeAndParseTest " : anewword SWAP - ; " `shouldBe` Right [Def (ForthVal.Fun "anewword" [Word "SWAP", Word "-"])]
+defNewWord =
+  tokenizeAndParseTest " : anewword SWAP - ; "
+    `shouldBe` Right [Def (ForthVal.Fun "anewword" [Word "SWAP", Word "-"])]
 
 parseDefWord :: SpecWith ()
 parseDefWord =
@@ -311,7 +388,9 @@ parseDefWord =
         defNewWord
 
 unclosedDef :: Expectation
-unclosedDef = tokenizeAndParseTest " : anewword SWAP -  " `shouldBe` Left SyntaxError
+unclosedDef =
+  tokenizeAndParseTest " : anewword SWAP -  "
+    `shouldBe` Left SyntaxError
 
 parseIncompleteDef :: SpecWith ()
 parseIncompleteDef =
@@ -322,7 +401,9 @@ parseIncompleteDef =
         unclosedDef
 
 singleSemicolon :: Expectation
-singleSemicolon = tokenizeAndParseTest " anewword ; " `shouldBe` Left SyntaxError
+singleSemicolon =
+  tokenizeAndParseTest " anewword ; "
+    `shouldBe` Left SyntaxError
 
 parseSingleSemicolon :: SpecWith ()
 parseSingleSemicolon =
@@ -333,7 +414,18 @@ parseSingleSemicolon =
         singleSemicolon
 
 ifInsideDef :: Expectation
-ifInsideDef = tokenizeAndParseTest " : afunction 3 = IF .\"equal to 3\" THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "afunction" [Number 3, Word "=", If [PrintStringLiteral "equal to 3"]])]
+ifInsideDef =
+  tokenizeAndParseTest " : afunction 3 = IF .\"equal to 3\" THEN  ; "
+    `shouldBe` Right
+      [ Def
+          ( ForthVal.Fun
+              "afunction"
+              [ Number 3,
+                Word "=",
+                If [PrintStringLiteral "equal to 3"]
+              ]
+          )
+      ]
 
 parseifInsideDef :: SpecWith ()
 parseifInsideDef =
@@ -344,7 +436,19 @@ parseifInsideDef =
         ifInsideDef
 
 recurseInsideDef :: Expectation
-recurseInsideDef = tokenizeAndParseTest " : arecursivefunction DUP 3 < IF 1 + RECURSE THEN  ; " `shouldBe` Right [Def (ForthVal.Fun "arecursivefunction" [Word "DUP", Number 3, Word "<", If [Number 1, Word "+", Recurse]])]
+recurseInsideDef =
+  tokenizeAndParseTest " : arecursivefunction DUP 3 < IF 1 + RECURSE THEN  ; "
+    `shouldBe` Right
+      [ Def
+          ( ForthVal.Fun
+              "arecursivefunction"
+              [ Word "DUP",
+                Number 3,
+                Word "<",
+                If [Number 1, Word "+", Recurse]
+              ]
+          )
+      ]
 
 parseRecInsideDef :: SpecWith ()
 parseRecInsideDef =
@@ -356,7 +460,14 @@ parseRecInsideDef =
 
 -- IF
 ifvalsParsed :: Expectation
-ifvalsParsed = tokenizeAndParseTest " IF 2 + THEN" `shouldBe` Right [If [Number 2, Word "+"]]
+ifvalsParsed =
+  tokenizeAndParseTest " IF 2 + THEN"
+    `shouldBe` Right
+      [ If
+          [ Number 2,
+            Word "+"
+          ]
+      ]
 
 parseifVals :: SpecWith ()
 parseifVals =
@@ -367,7 +478,15 @@ parseifVals =
         ifvalsParsed
 
 loopInsideIf :: Expectation
-loopInsideIf = tokenizeAndParseTest " IF 10 1 DO I . LOOP THEN" `shouldBe` Right [If [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]
+loopInsideIf =
+  tokenizeAndParseTest " IF 10 1 DO I . LOOP THEN"
+    `shouldBe` Right
+      [ If
+          [ Number 10,
+            Number 1,
+            DoLoop Loop {_loopbody = [Word "I", PrintCommand]}
+          ]
+      ]
 
 parseLoopInsideIf :: SpecWith ()
 parseLoopInsideIf =
@@ -378,7 +497,17 @@ parseLoopInsideIf =
         loopInsideIf
 
 ifInsideIf :: Expectation
-ifInsideIf = tokenizeAndParseTest " IF IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [If [If [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
+ifInsideIf =
+  tokenizeAndParseTest " IF IF 10 1 DO I . LOOP THEN THEN"
+    `shouldBe` Right
+      [ If
+          [ If
+              [ Number 10,
+                Number 1,
+                DoLoop Loop {_loopbody = [Word "I", PrintCommand]}
+              ]
+          ]
+      ]
 
 parseIFInsideIf :: SpecWith ()
 parseIFInsideIf =
@@ -389,7 +518,18 @@ parseIFInsideIf =
         ifInsideIf
 
 ifInsideElse :: Expectation
-ifInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP THEN THEN" `shouldBe` Right [IfElse [Number 1] [If [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}]]]
+ifInsideElse =
+  tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP THEN THEN"
+    `shouldBe` Right
+      [ IfElse
+          [Number 1]
+          [ If
+              [ Number 10,
+                Number 1,
+                DoLoop Loop {_loopbody = [Word "I", PrintCommand]}
+              ]
+          ]
+      ]
 
 parseIFInsideElse :: SpecWith ()
 parseIFInsideElse =
@@ -400,7 +540,19 @@ parseIFInsideElse =
         ifInsideElse
 
 ifElseInsideElse :: Expectation
-ifElseInsideElse = tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP ELSE 2 . THEN THEN" `shouldBe` Right [IfElse [Number 1] [IfElse [Number 10, Number 1, DoLoop Loop {_loopbody = [Word "I", PrintCommand]}] [Number 2, PrintCommand]]]
+ifElseInsideElse =
+  tokenizeAndParseTest " IF 1 ELSE IF 10 1 DO I . LOOP ELSE 2 . THEN THEN"
+    `shouldBe` Right
+      [ IfElse
+          [Number 1]
+          [ IfElse
+              [ Number 10,
+                Number 1,
+                DoLoop Loop {_loopbody = [Word "I", PrintCommand]}
+              ]
+              [Number 2, PrintCommand]
+          ]
+      ]
 
 parseIFElseInsideElse :: SpecWith ()
 parseIFElseInsideElse =
@@ -442,7 +594,9 @@ evalDefinitions =
         definedWord
 
 unknownWordError :: Expectation
-unknownWordError = eval initialEnv (Word "unkownWord") `shouldBe` Left UnknownWord
+unknownWordError =
+  eval initialEnv (Word "unkownWord")
+    `shouldBe` Left UnknownWord
 
 evalUndefinedError :: SpecWith ()
 evalUndefinedError =
@@ -626,7 +780,16 @@ evalIFNotExecutedIfFalse =
 
 elseExecutedIfFalse :: Expectation
 elseExecutedIfFalse =
-  stackState (eval envWithStackTop0 (IfElse [Manip Drop, Manip Dup] [Number 10]))
+  stackState
+    ( eval
+        envWithStackTop0
+        ( IfElse
+            [ Manip Drop,
+              Manip Dup
+            ]
+            [Number 10]
+        )
+    )
     `shouldBe` Right [10, 1, 2, 4]
 
 evalElseExecuted :: SpecWith ()
@@ -653,7 +816,16 @@ evalDoLoopExecuted =
 
 doloopExecutedntimes :: Expectation
 doloopExecutedntimes =
-  stackState (eval envWithStackTop0 (Forthvals [Number 5, Number 0, DoLoop Loop {_loopbody = [Number 3]}]))
+  stackState
+    ( eval
+        envWithStackTop0
+        ( Forthvals
+            [ Number 5,
+              Number 0,
+              DoLoop Loop {_loopbody = [Number 3]}
+            ]
+        )
+    )
     `shouldBe` Right [3, 3, 3, 3, 3, 0, 1, 2, 4]
 
 evalDooLoopnTimes :: SpecWith ()
@@ -666,7 +838,15 @@ evalDooLoopnTimes =
 
 doloopnotExecuted :: Expectation
 doloopnotExecuted =
-  stackState (eval envWithStackTop0 (Forthvals [Number 0, DoLoop Loop {_loopbody = [Number 3]}]))
+  stackState
+    ( eval
+        envWithStackTop0
+        ( Forthvals
+            [ Number 0,
+              DoLoop Loop {_loopbody = [Number 3]}
+            ]
+        )
+    )
     `shouldBe` Right [1, 2, 4]
 
 evalDoLoopNotExecuted :: SpecWith ()
@@ -679,7 +859,16 @@ evalDoLoopNotExecuted =
 
 indexPutOnStack :: Expectation
 indexPutOnStack =
-  stackState (eval initialEnv (Forthvals [Number 5, Number 0, DoLoop Loop {_loopbody = [Word "I"]}]))
+  stackState
+    ( eval
+        initialEnv
+        ( Forthvals
+            [ Number 5,
+              Number 0,
+              DoLoop Loop {_loopbody = [Word "I"]}
+            ]
+        )
+    )
     `shouldBe` Right [4, 3, 2, 1, 0]
 
 evalIndexInLoop :: SpecWith ()
@@ -692,7 +881,18 @@ evalIndexInLoop =
 
 ploopExecuted :: Expectation
 ploopExecuted =
-  stackState (eval envWithStackTop0 (PlusLoop Loop {_loopbody = [Number 4, Number 1]}))
+  stackState
+    ( eval
+        envWithStackTop0
+        ( PlusLoop
+            Loop
+              { _loopbody =
+                  [ Number 4,
+                    Number 1
+                  ]
+              }
+        )
+    )
     `shouldBe` Right [4, 2, 4]
 
 evalPlusLoopExecuted :: SpecWith ()
@@ -705,7 +905,16 @@ evalPlusLoopExecuted =
 
 ploopIncreaseIndex :: Expectation
 ploopIncreaseIndex =
-  stackState (eval envWithStackNumbers (Forthvals [Number 5, Number 2, PlusLoop Loop {_loopbody = [Number 3, Number 2]}]))
+  stackState
+    ( eval
+        envWithStackNumbers
+        ( Forthvals
+            [ Number 5,
+              Number 2,
+              PlusLoop Loop {_loopbody = [Number 3, Number 2]}
+            ]
+        )
+    )
     `shouldBe` Right [3, 3, 1, 2, 4]
 
 evalPlusLoopIncreasesIndex :: SpecWith ()
@@ -718,7 +927,18 @@ evalPlusLoopIncreasesIndex =
 
 untilloopRunUntilTrue :: Expectation
 untilloopRunUntilTrue =
-  stackState (eval envWithStackNumbers (UntilLoop Loop {_loopbody = [Number 2, Arith Equal]}))
+  stackState
+    ( eval
+        envWithStackNumbers
+        ( UntilLoop
+            Loop
+              { _loopbody =
+                  [ Number 2,
+                    Arith Equal
+                  ]
+              }
+        )
+    )
     `shouldBe` Right [4]
 
 evalUntilLoopUntilTrue :: SpecWith ()
@@ -744,7 +964,9 @@ evalUntilLoopStopCondition =
 
 -- Variables
 uninitializedVar :: Expectation
-uninitializedVar = eval initialEnv (Word "myvar") `shouldBe` Left UnknownWord
+uninitializedVar =
+  eval initialEnv (Word "myvar")
+    `shouldBe` Left UnknownWord
 
 evalUninitializedException :: SpecWith ()
 evalUninitializedException =
@@ -755,7 +977,17 @@ evalUninitializedException =
         uninitializedVar
 
 varExistsAfterInitialization :: Expectation
-varExistsAfterInitialization = stackTail (eval initialEnv (Forthvals [Variable "myvar", Word "myvar"])) `shouldBe` Right []
+varExistsAfterInitialization =
+  stackTail
+    ( eval
+        initialEnv
+        ( Forthvals
+            [ Variable "myvar",
+              Word "myvar"
+            ]
+        )
+    )
+    `shouldBe` Right []
 
 evalInitializeVar :: SpecWith ()
 evalInitializeVar =
@@ -766,7 +998,21 @@ evalInitializeVar =
         varExistsAfterInitialization
 
 variableCanBeAssignedAndRetrieved :: Expectation
-variableCanBeAssignedAndRetrieved = stackTop (eval initialEnv (Forthvals [Variable "myvar", Number 2, Word "myvar", Word "!", Word "myvar", Word "@"])) `shouldBe` Right 2
+variableCanBeAssignedAndRetrieved =
+  stackTop
+    ( eval
+        initialEnv
+        ( Forthvals
+            [ Variable "myvar",
+              Number 2,
+              Word "myvar",
+              Word "!",
+              Word "myvar",
+              Word "@"
+            ]
+        )
+    )
+    `shouldBe` Right 2
 
 evalAssignVar :: SpecWith ()
 evalAssignVar =
@@ -778,7 +1024,21 @@ evalAssignVar =
 
 -- Memory operations
 numCanBeStoredAndRetrieved :: Expectation
-numCanBeStoredAndRetrieved = stackTop (eval initialEnv (Forthvals [Variable "myvar", Number 2, Word "myvar", Mem Store, Word "myvar", Mem Retrieve])) `shouldBe` Right 2
+numCanBeStoredAndRetrieved =
+  stackTop
+    ( eval
+        initialEnv
+        ( Forthvals
+            [ Variable "myvar",
+              Number 2,
+              Word "myvar",
+              Mem Store,
+              Word "myvar",
+              Mem Retrieve
+            ]
+        )
+    )
+    `shouldBe` Right 2
 
 evalStoreRetrieve :: SpecWith ()
 evalStoreRetrieve =
@@ -789,7 +1049,17 @@ evalStoreRetrieve =
         numCanBeStoredAndRetrieved
 
 cellAllotInitializesMemory :: Expectation
-cellAllotInitializesMemory = stackState (eval envWithStackNumbers (Mem Allot) >>= (`eval` Forthvals [Number 2, Mem Retrieve])) `shouldBe` Right [0, 4]
+cellAllotInitializesMemory =
+  stackState
+    ( eval envWithStackNumbers (Mem Allot)
+        >>= ( `eval`
+                Forthvals
+                  [ Number 2,
+                    Mem Retrieve
+                  ]
+            )
+    )
+    `shouldBe` Right [0, 4]
 
 evalCellAllot :: SpecWith ()
 evalCellAllot =
@@ -811,7 +1081,21 @@ evalCommaStore =
         commaStoreLeavesNewAddressOnStack
 
 commaStoreDump :: Expectation
-commaStoreDump = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5, Mem CommaStore, Number 2, Number 2, Word "DUMP"])) `shouldBe` Right [4, 4]
+commaStoreDump =
+  stackState
+    ( eval
+        envWithStackNumbers
+        ( Forthvals
+            [ Mem CommaStore,
+              Number 5,
+              Mem CommaStore,
+              Number 2,
+              Number 2,
+              Word "DUMP"
+            ]
+        )
+    )
+    `shouldBe` Right [4, 4]
 
 evalCommaStoreDump :: SpecWith ()
 evalCommaStoreDump =
@@ -822,7 +1106,18 @@ evalCommaStoreDump =
         commaStoreDump
 
 commaStoreTwice :: Expectation
-commaStoreTwice = stackState (eval envWithStackNumbers (Forthvals [Mem CommaStore, Number 5, Mem CommaStore])) `shouldBe` Right [4, 4]
+commaStoreTwice =
+  stackState
+    ( eval
+        envWithStackNumbers
+        ( Forthvals
+            [ Mem CommaStore,
+              Number 5,
+              Mem CommaStore
+            ]
+        )
+    )
+    `shouldBe` Right [4, 4]
 
 evalCommaStoreTwice :: SpecWith ()
 evalCommaStoreTwice =
@@ -833,7 +1128,9 @@ evalCommaStoreTwice =
         commaStoreTwice
 
 accessingUninitializedMemoryError :: Expectation
-accessingUninitializedMemoryError = eval envWithStackNumbers (Mem Retrieve) `shouldBe` Left MemoryAccessError
+accessingUninitializedMemoryError =
+  eval envWithStackNumbers (Mem Retrieve)
+    `shouldBe` Left MemoryAccessError
 
 errorOnAccessingUninitializedMemory :: SpecWith ()
 errorOnAccessingUninitializedMemory =
@@ -845,7 +1142,9 @@ errorOnAccessingUninitializedMemory =
       accessingUninitializedMemoryError
 
 accessingMemoryWithoutAddressError :: Expectation
-accessingMemoryWithoutAddressError = eval initialEnv (Mem Retrieve) `shouldBe` Left StackUnderflow
+accessingMemoryWithoutAddressError =
+  eval initialEnv (Mem Retrieve)
+    `shouldBe` Left StackUnderflow
 
 errorOnAccessingMemoryWithoutAddress :: SpecWith ()
 errorOnAccessingMemoryWithoutAddress =
@@ -857,7 +1156,9 @@ errorOnAccessingMemoryWithoutAddress =
       accessingMemoryWithoutAddressError
 
 dumpUninitializedMemoryError :: Expectation
-dumpUninitializedMemoryError = eval envWithStackNumbers (Word "DUMP") `shouldBe` Left MemoryAccessError
+dumpUninitializedMemoryError =
+  eval envWithStackNumbers (Word "DUMP")
+    `shouldBe` Left MemoryAccessError
 
 errorOnDumpUninitializedMemory :: SpecWith ()
 errorOnDumpUninitializedMemory =
@@ -877,7 +1178,9 @@ environmentInitialDef = describe "initialDef" $ do
 -- printing
 -------------
 printCommandRemovesFromStack :: Expectation
-printCommandRemovesFromStack = stackState (eval envWithStackNumbers PrintCommand) `shouldBe` Right [2, 4]
+printCommandRemovesFromStack =
+  stackState (eval envWithStackNumbers PrintCommand)
+    `shouldBe` Right [2, 4]
 
 evalPrintRemovedFromStack :: SpecWith ()
 evalPrintRemovedFromStack =
@@ -888,7 +1191,9 @@ evalPrintRemovedFromStack =
         printCommandRemovesFromStack
 
 printCommandAppendsToPrintStr :: Expectation
-printCommandAppendsToPrintStr = printStrState (eval envWithStackNumbers PrintCommand) `shouldBe` Right ["1"]
+printCommandAppendsToPrintStr =
+  printStrState (eval envWithStackNumbers PrintCommand)
+    `shouldBe` Right ["1"]
 
 evalPrintAppendedToPrintStr :: SpecWith ()
 evalPrintAppendedToPrintStr =
@@ -945,7 +1250,9 @@ evalAsciiCodeAOnStack =
 
 -- storing and typing strings
 storeAndTypeString :: Expectation
-storeAndTypeString = printStrState (envWithStringInMem >>= typeStringMem) `shouldBe` Right ["a String"]
+storeAndTypeString =
+  printStrState (envWithStringInMem >>= typeStringMem)
+    `shouldBe` Right ["a String"]
 
 evalStoreAndTypeString :: SpecWith ()
 evalStoreAndTypeString =
@@ -972,7 +1279,8 @@ recurseIfTrue =
 -- evaluate source file
 fileDoesNotExist :: Expectation
 fileDoesNotExist =
-  runExceptT (evalT initialEnv (SourceFile "nonExistentFile")) `shouldReturn` Left (FileNotFound "nonExistentFile")
+  runExceptT (evalT initialEnv (SourceFile "nonExistentFile"))
+    `shouldReturn` Left (FileNotFound "nonExistentFile")
 
 evalSourceDoesNotExist :: SpecWith ()
 evalSourceDoesNotExist =
@@ -984,7 +1292,8 @@ evalSourceDoesNotExist =
 
 sourceFile :: Expectation
 sourceFile =
-  runExceptT (evalT initialEnv (SourceFile "test/testfile.forth")) `shouldReturn` Right initialEnv
+  runExceptT (evalT initialEnv (SourceFile "test/testfile.forth"))
+    `shouldReturn` Right initialEnv
 
 evalSource :: SpecWith ()
 evalSource =
@@ -996,7 +1305,9 @@ evalSource =
 
 -- evalT with non- IO value
 evalTNoIO :: Expectation
-evalTNoIO = runExceptT (evalT initialEnv (Number 0)) `shouldReturn` Right initialEnv {_stack = [0]}
+evalTNoIO =
+  runExceptT (evalT initialEnv (Number 0))
+    `shouldReturn` Right initialEnv {_stack = [0]}
 
 evalTwithPureValue :: SpecWith ()
 evalTwithPureValue =
@@ -1010,7 +1321,9 @@ evalTwithPureValue =
 -- Transpiler Tests
 ---------------------------------------
 subtractAfterAdd :: Expectation
-subtractAfterAdd = parseTranspileGenerateOutputFromText " 1 2 + 3 -" `shouldBe` "(1 + 2) - 3\n"
+subtractAfterAdd =
+  parseTranspileGenerateOutputFromText " 1 2 + 3 -"
+    `shouldBe` "(1 + 2) - 3\n"
 
 transpileAddAndSubtract :: SpecWith ()
 transpileAddAndSubtract =
@@ -1021,7 +1334,9 @@ transpileAddAndSubtract =
         subtractAfterAdd
 
 modOrderCorrect :: Expectation
-modOrderCorrect = parseTranspileGenerateOutputFromText "3 2 MOD 1 =" `shouldBe` "(3 % 2) == 1\n"
+modOrderCorrect =
+  parseTranspileGenerateOutputFromText "3 2 MOD 1 ="
+    `shouldBe` "(3 % 2) == 1\n"
 
 transpileMod :: SpecWith ()
 transpileMod =
@@ -1032,7 +1347,9 @@ transpileMod =
         modOrderCorrect
 
 printExpression :: Expectation
-printExpression = parseTranspileGenerateOutputFromText " 1 2 + 3 - . " `shouldBe` "print((1 + 2) - 3)\n"
+printExpression =
+  parseTranspileGenerateOutputFromText " 1 2 + 3 - . "
+    `shouldBe` "print((1 + 2) - 3)\n"
 
 transpilePrintExpression :: SpecWith ()
 transpilePrintExpression =
@@ -1043,7 +1360,9 @@ transpilePrintExpression =
         printExpression
 
 printStringLiteral :: Expectation
-printStringLiteral = parseTranspileGenerateOutputFromText " .\"hello world\"" `shouldBe` "print(\"hello world\")\n"
+printStringLiteral =
+  parseTranspileGenerateOutputFromText " .\"hello world\""
+    `shouldBe` "print(\"hello world\")\n"
 
 transpilePrintStringLiteral :: SpecWith ()
 transpilePrintStringLiteral =
@@ -1065,7 +1384,9 @@ transpileifGreater =
         ifGreater
 
 nestedIf :: Expectation
-nestedIf = parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 .THEN THEN" `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n"
+nestedIf =
+  parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 .THEN THEN"
+    `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n"
 
 transpilenestedIf :: SpecWith ()
 transpilenestedIf =
@@ -1076,7 +1397,9 @@ transpilenestedIf =
         nestedIf
 
 nestedIfElse :: Expectation
-nestedIfElse = parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 . ELSE 3 . THEN ELSE 1 . THEN" `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n    else:\n        print(3)\nelse:\n    print(1)\n"
+nestedIfElse =
+  parseTranspileGenerateOutputFromText "2 2 = IF 3 1 > IF 5 . ELSE 3 . THEN ELSE 1 . THEN"
+    `shouldBe` "if 2 == 2:\n    if 3 > 1:\n        print(5)\n    else:\n        print(3)\nelse:\n    print(1)\n"
 
 transpilenestedIfElse :: SpecWith ()
 transpilenestedIfElse =
