@@ -369,3 +369,31 @@ Functions cannot refer to themselves in the definition body by name. Recursive f
 `0 rec`
 
 output: 0 1 2 3 4 5 6 7 8 9 10
+
+## Reading a file
+
+Reading a string from a text file is performed in 2 steps:
+* opening the file
+* reading in the contents
+
+### Open File
+
+A file is opened by filepath as a string followed by the read mode (R/O or R/W) and the READ-FILE keyword. It leaves the fileID on the top of the stack.
+
+### READ FILE
+
+To read n characters from the current position of file with fileid, use n fileid. This leaves the memory address and the number of characters read on the stack. The contents can then be printed with TYPE. If n>number of characters in file, the total content is returned.
+
+### Examples
+
+`S"test/testtext.txt" R/W OPEN-FILE`
+
+`.s`
+
+output: 1 (fileID)
+
+`14 1 READ-FILE`
+
+`TYPE`
+
+output: this is a test
