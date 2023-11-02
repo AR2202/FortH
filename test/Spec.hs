@@ -60,6 +60,7 @@ main =
       parseSingleSemicolon
       parseifInsideDef
       parseRecInsideDef
+      parseNonTailRecursive
       -- IF
       parseifVals
       parseLoopInsideIf
@@ -128,6 +129,7 @@ main =
       evalStoreAndTypeString
       -- Recursion
       recurseIfTrue
+      evalNonTailRec
       -- evalT Monad transformer
       evalSourceDoesNotExist
       evalSource
@@ -457,6 +459,32 @@ parseRecInsideDef =
       it
         "should parse it as a definition with the Recurse word in the body"
         recurseInsideDef
+
+nonTailRec :: Expectation
+nonTailRec =
+  tokenizeAndParseTest " : rec 1 + DUP 10 < IF RECURSE THEN .\"done\" ; "
+    `shouldBe` Right
+      [ Def
+          ( ForthVal.Fun
+              "rec"
+              [ Number 1,
+                Word "+",
+                Word "DUP",
+                Number 10,
+                Word "<",
+                If [Recurse],
+                PrintStringLiteral "done"
+              ]
+          )
+      ]
+
+parseNonTailRecursive :: SpecWith ()
+parseNonTailRecursive =
+  describe "parseFromText" $
+    context "when RECURSE is not the last statement in the function" $
+      it
+        "should parse RECURSE and the rest in order"
+        nonTailRec
 
 -- IF
 ifvalsParsed :: Expectation
@@ -1276,6 +1304,32 @@ recurseIfTrue =
         "recurses while True"
         recurseIF
 
+nonTailRecurse :: Expectation
+nonTailRecurse =
+  stackState (eval envWithStackNumbers (Forthvals[ Def
+          ( ForthVal.Fun
+              "rec"
+              [ Number 1,
+                Word "+",
+                Word "DUP",
+                Number 5,
+                Word "<",
+                If [Recurse],
+                Number 3,
+                Manip Swap
+              ]
+          ),
+          Word "rec"
+      ]))
+    `shouldBe` Right [5,3,3,3,3,2,4]
+
+evalNonTailRec :: SpecWith ()
+evalNonTailRec =
+  describe "eval" $
+    context "when evaluating a non-tail recursive function" $
+      it
+        "executes the code after the RECURSE statement"
+        nonTailRecurse
 -- evaluate source file
 fileDoesNotExist :: Expectation
 fileDoesNotExist =
