@@ -1306,22 +1306,28 @@ recurseIfTrue =
 
 nonTailRecurse :: Expectation
 nonTailRecurse =
-  stackState (eval envWithStackNumbers (Forthvals[ Def
-          ( ForthVal.Fun
-              "rec"
-              [ Number 1,
-                Word "+",
-                Word "DUP",
-                Number 5,
-                Word "<",
-                If [Recurse],
-                Number 3,
-                Manip Swap
-              ]
-          ),
-          Word "rec"
-      ]))
-    `shouldBe` Right [5,3,3,3,3,2,4]
+  stackState
+    ( eval
+        envWithStackNumbers
+        ( Forthvals
+            [ Def
+                ( ForthVal.Fun
+                    "rec"
+                    [ Number 1,
+                      Word "+",
+                      Word "DUP",
+                      Number 5,
+                      Word "<",
+                      If [Recurse],
+                      Number 3,
+                      Manip Swap
+                    ]
+                ),
+              Word "rec"
+            ]
+        )
+    )
+    `shouldBe` Right [5, 3, 3, 3, 3, 2, 4]
 
 evalNonTailRec :: SpecWith ()
 evalNonTailRec =
@@ -1330,6 +1336,7 @@ evalNonTailRec =
       it
         "executes the code after the RECURSE statement"
         nonTailRecurse
+
 -- evaluate source file
 fileDoesNotExist :: Expectation
 fileDoesNotExist =
@@ -1427,7 +1434,9 @@ transpilePrintStringLiteral =
         printStringLiteral
 
 ifGreater :: Expectation
-ifGreater = parseTranspileGenerateOutputFromText "3 2 > IF .\"hello world\" THEN" `shouldBe` "if 3 > 2:\n    print(\"hello world\")\n"
+ifGreater =
+  parseTranspileGenerateOutputFromText "3 2 > IF .\"hello world\" THEN"
+    `shouldBe` "if 3 > 2:\n    print(\"hello world\")\n"
 
 transpileifGreater :: SpecWith ()
 transpileifGreater =

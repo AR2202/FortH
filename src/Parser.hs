@@ -378,7 +378,7 @@ forthValParser' (STORESTR s : xs) parsed =
 forthValParser' (EvalSource s : xs) parsed =
   forthValParser' xs (SourceFile s : parsed)
 forthValParser' (OpenFile s : xs) parsed =
-  forthValParser' xs (Forthvals [Number 0, Mem StoreNext, Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop, Manip Drop, Number 0] : parsed)
+  forthValParser' xs (Forthvals [Number 0, Mem StoreNext, Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop, Manip Drop, Manip Swap] : parsed)
 forthValParser' _ _ = Left SyntaxError
 
 doLoopParser ::
