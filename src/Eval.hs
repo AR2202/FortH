@@ -77,7 +77,8 @@ initialNames =
         "EMIT",
         "FILE-POSITION",
         "CELL",
-        "DUMP"
+        "DUMP",
+        "NUMBER"
       ]
       [0 ..]
 
@@ -113,7 +114,8 @@ initialDefs =
         Ascii,
         Forthvals [Mem Retrieve, Number 0],
         Forthvals [Number 1, Mem Cellsize],
-        Forthvals [Mem Cellsize, Manip Over, Arith Add, Manip Swap, PlusLoop (Loop [PrintStringLiteral "\n", Word "I", Mem Retrieve, PrintCommand, Number 1, Mem Cellsize])]
+        Forthvals [Mem Cellsize, Manip Over, Arith Add, Manip Swap, PlusLoop (Loop [PrintStringLiteral "\n", Word "I", Mem Retrieve, PrintCommand, Number 1, Mem Cellsize])],
+        FromStr
       ]
 
 initialEnv :: Env
@@ -171,7 +173,13 @@ eval env Ascii = evalAscii env
 eval env (Key c) = evalKey env c
 eval env Type = evalType env
 eval env (StoreString s) = evalStoreStr env s
+eval env FromStr = evalFromStr env
 eval _ _ = Left ParseErr
+
+evalFromStr :: Env -> Either ForthErr Env
+evalFromStr env = pushToStack <$> converted <*> evalType env
+  where
+    converted = read . L.head . _printStr <$> evalType env
 
 evalT :: Env -> ForthVal -> ExceptT ForthErr IO Env
 evalT env (SourceFile f) = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) (evalFile f >> return (Right env)) (\_ -> return (Left (FileNotFound f)))
@@ -429,10 +437,10 @@ evalPlusLoop env loop =
       | otherwise =
           case eval (save2Mem 0 index env') (Forthvals forthvals) of
             Left e -> Left e
-            Right env'' -> case  _stack env'' of
+            Right env'' -> case _stack env'' of
               [] -> Left StackUnderflow
               (0 : xs) -> Left SyntaxError
-              (step : xs) -> if (step > 0 && (index + step) >= stop) || (step < 0 && (index + stop) <= stop) then Right (dropStackTop env'') else  go (index + step) stop forthvals ( dropStackTop env'')
+              (step : xs) -> if (step > 0 && (index + step) >= stop) || (step < 0 && (index + stop) <= stop) then Right (dropStackTop env'') else go (index + step) stop forthvals (dropStackTop env'')
 
 evalUntilLoop :: Env -> Loop -> Either ForthErr Env
 evalUntilLoop env loop = case eval env (Forthvals (loop ^. loopbody)) of
@@ -580,6 +588,9 @@ pushToStack i = over stack (i :)
 
 pushToPrintStack :: String -> Env -> Env
 pushToPrintStack s = over printStr (s :)
+
+dropfromPrintStack :: Env -> Env
+dropfromPrintStack = over printStr L.tail
 
 save2Mem :: Key -> Int -> Env -> Env
 save2Mem addr val = over mem (IM.insert addr val)

@@ -70,6 +70,7 @@ data ForthVal
   | SourceFile String
   | ReadFile
   | Recurse
+  | FromStr
   deriving (Show, Eq)
 
 -----Loop----
