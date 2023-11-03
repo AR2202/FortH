@@ -177,7 +177,7 @@ eval env FromStr = evalFromStr env
 eval _ _ = Left ParseErr
 
 evalFromStr :: Env -> Either ForthErr Env
-evalFromStr env = pushToStack <$> converted <*> evalType env
+evalFromStr env = dropfromPrintStack <$> (pushToStack <$> converted <*> evalType env)
   where
     converted = read . L.head . _printStr <$> evalType env
 
