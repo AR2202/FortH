@@ -5,11 +5,11 @@ import qualified Data.Map as Map
 
 -- map from ASCII code to character
 asciiTable :: IM.IntMap Char
-asciiTable = IM.fromList $ zip [32 ..] asciiChars
+asciiTable = IM.insert 0 '\n' $ IM.fromList $ zip [32 ..] asciiChars
 
 -- map from character to ASCII code
 asciiNums :: Map.Map Char Int
-asciiNums = Map.fromList $ zip asciiChars [32 ..]
+asciiNums =Map.insert  '\n' 0 $ Map.fromList $ zip asciiChars [32 ..]
 
 --list of ASCII Characters
 asciiChars :: [Char]
