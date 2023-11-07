@@ -400,7 +400,7 @@ output: this is a test
 
 ## Converting a String to an Int
 
-Strings representing numbers can be converted to an Int with the NUMBER keyword. The NUMBER word expects the starting address and the length of the String on the Stack (the length on top and the starting address below). The result is returned to the top of the stack.
+Strings representing numbers can be converted to an Int with the NUMBER keyword. The NUMBER word expects the starting address and the length of the string on the stack (the length on top and the starting address below). The result is returned to the top of the stack.
 
 ### Examples
 
