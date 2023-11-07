@@ -521,6 +521,7 @@ evalDefComponents :: Env -> ForthVal -> Maybe ForthVal
 evalDefComponents env (Word text) = fmap Address $ Map.lookup text (env ^. names)
 evalDefComponents env (If ifvals) = If <$> (evalDefBody env ifvals)
 evalDefComponents env (IfElse ifvals elsevals) = IfElse <$> (evalDefBody env ifvals) <*> (evalDefBody env elsevals)
+-- this needs to be modified for VARIABLE inside function definition (lokal variables)
 evalDefComponents env Recurse = Just $ Address $ L.head $ env ^. stack
 evalDefComponents env x = Just x
 
