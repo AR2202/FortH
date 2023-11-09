@@ -1244,7 +1244,7 @@ evalPrintStringLitAppendedToPrintStr =
 
 -- ASCII
 ascii0 :: Expectation
-ascii0 = printStrState (eval envWithStackTop0 Ascii) `shouldBe` Left NonAsciiCode
+ascii0 = printStrState (eval envWithStackNumbers Ascii) `shouldBe` Left NonAsciiCode
 
 evalNonAscii :: SpecWith ()
 evalNonAscii =

@@ -43,7 +43,7 @@ import Generic.Random (genericArbitrary', uniform)
 import Test.QuickCheck (Arbitrary (..))
 import Test.QuickCheck.Arbitrary.Generic
 
---Forth Values-------
+-- Forth Values-------
 data ForthVal
   = Number Int
   | Word T.Text
@@ -68,6 +68,7 @@ data ForthVal
   | Type
   | StoreString String
   | SourceFile String
+  | Load String
   | ReadFile
   | Recurse
   | FromStr
@@ -79,14 +80,14 @@ newtype Loop = Loop
   }
   deriving (Show, Eq)
 
---Function definition---
+-- Function definition---
 data Fun = Fun
   { _name :: T.Text,
     _body :: [ForthVal]
   }
   deriving (Show, Eq)
 
---Arithmetic and Boolean opterators-----
+-- Arithmetic and Boolean opterators-----
 data Operator
   = Add
   | Sub
@@ -102,13 +103,13 @@ data Operator
   | Mod
   deriving (Show, Eq, Generic)
 
---Arbitrary instance for Operator---
+-- Arbitrary instance for Operator---
 instance Arbitrary Operator where
   arbitrary = genericArbitrary
   shrink :: Operator -> [Operator]
   shrink = genericShrink
 
---Stack Manipulation Commands---
+-- Stack Manipulation Commands---
 data StackManip
   = Dup
   | Drop
@@ -118,7 +119,7 @@ data StackManip
   | Invert
   deriving (Show, Eq)
 
---Memory Operations-------
+-- Memory Operations-------
 data MemoryOp
   = Store
   | Retrieve
@@ -133,7 +134,7 @@ type Names = Map.Map T.Text Int
 
 type Defs = IntMap ForthVal
 
---Program Environment------
+-- Program Environment------
 data Env = Env
   { _names :: Names,
     _definitions :: Defs,
@@ -144,7 +145,7 @@ data Env = Env
   }
   deriving (Show, Eq)
 
---Error Types-
+-- Error Types-
 data ForthErr
   = StackUnderflow
   | UnknownWord
@@ -156,7 +157,7 @@ data ForthErr
   | FileNotFound String
   deriving (Show, Read, Eq)
 
---Token Types for Lexer-----
+-- Token Types for Lexer-----
 data Token
   = Ide T.Text
   | Num T.Text
@@ -184,11 +185,12 @@ data Token
   | TYPE
   | STORESTR String
   | EvalSource String
+  | LoadSource String
   | OpenFile String
   | READF
   deriving (Show, Eq)
 
---Template Haskell Lens creation----
+-- Template Haskell Lens creation----
 makeLenses ''Fun
 makeLenses ''Loop
 makeLenses ''Env

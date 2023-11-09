@@ -236,6 +236,14 @@ sourceFileToken =
       (char '"')
       (many (noneOf ['"']))
 
+loadFileToken :: Parser Token
+loadFileToken =
+  LoadSource
+    <$> between
+      (string ":l \"")
+      (char '"')
+      (many (noneOf ['"']))
+
 openFileToken :: Parser Token
 openFileToken =
   OpenFile
@@ -280,6 +288,7 @@ tokenParser :: Parser Token
 tokenParser =
   try funToken
     <|> try sourceFileToken
+    <|> try loadFileToken
     <|> try readFileToken
     <|> try filePositionToken
     <|> try colonToken
@@ -377,6 +386,8 @@ forthValParser' (STORESTR s : xs) parsed =
   forthValParser' xs (StoreString s : parsed)
 forthValParser' (EvalSource s : xs) parsed =
   forthValParser' xs (SourceFile s : parsed)
+forthValParser' (LoadSource s : xs) parsed =
+  forthValParser' xs (Load s : parsed)
 forthValParser' (OpenFile s : xs) parsed =
   forthValParser' xs (Forthvals [Number 0, Mem StoreNext, Number (L.length s), Mem StoreNext, StoreString s, Manip Drop, Manip Drop, Manip Drop, Manip Swap] : parsed)
 forthValParser' _ _ = Left SyntaxError

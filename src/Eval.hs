@@ -183,12 +183,15 @@ evalFromStr env = dropfromPrintStack <$> (pushToStack <$> converted <*> evalType
 
 evalT :: Env -> ForthVal -> ExceptT ForthErr IO Env
 evalT env (SourceFile f) = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) (evalFile f >> return (Right env)) (\_ -> return (Left (FileNotFound f)))
+evalT env (Load f) = evalLoad env f 
 evalT env ReadFile = evalReadFile env
 evalT env val = ExceptT $ return $ eval env val
 
 evalReadFile :: Env -> ExceptT ForthErr IO Env
 evalReadFile env = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) ((evalReadFile2String . evalFileId) env) (\_ -> return (Left (FileNotFound "no such file")))
 
+evalLoad :: Env -> FilePath -> ExceptT ForthErr IO Env
+evalLoad env f = ExceptT $ catchJust (\e -> if isDoesNotExistErrorType (ioeGetErrorType e) then Just () else Nothing) ( evalLoadFile f env) (\_ -> return (Left (FileNotFound f)))
 evalReadFile2String :: Either ForthErr Env -> IO (Either ForthErr Env)
 evalReadFile2String (Right env) = do
   contents <- readFile (L.head $ env ^. printStr)
@@ -518,10 +521,11 @@ lookupAll text env =
   traverse (`Map.lookup` (env ^. names)) $ T.split (== ' ') text
 
 evalDefComponents :: Env -> ForthVal -> Maybe ForthVal
-evalDefComponents env (Word text) = fmap Address $ Map.lookup text (env ^. names)
+evalDefComponents env (Word text) = case Map.lookup text (env ^. names) of
+  Nothing -> Just $ Word text
+  Just x -> Just $ Address x
 evalDefComponents env (If ifvals) = If <$> (evalDefBody env ifvals)
 evalDefComponents env (IfElse ifvals elsevals) = IfElse <$> (evalDefBody env ifvals) <*> (evalDefBody env elsevals)
--- this needs to be modified for VARIABLE inside function definition (lokal variables)
 evalDefComponents env Recurse = Just $ Address $ L.head $ env ^. stack
 evalDefComponents env x = Just x
 
@@ -579,6 +583,12 @@ evalFile filename = do
   let text = T.unwords $ T.lines $ T.pack contents
   evalAndPrintStackTop filename text initialEnv
 
+
+evalLoadFile :: FilePath -> Env -> IO (Either ForthErr Env)
+evalLoadFile filename env = do
+  contents <- readFile filename
+  let text = T.unwords $ T.lines $ T.pack contents
+  runExceptT $ evalInputT filename text env
 -- helper functions for record updates with lenses
 
 dropStackTop :: Env -> Env
