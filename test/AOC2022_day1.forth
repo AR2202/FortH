@@ -11,7 +11,7 @@
 : day1a 1 DO max LOOP ;
 
 S"test/day1example.txt" R/W OPEN-FILE
-50 1 READ-FILE
+50 SWAP READ-FILE
 SPLITAONBLANKLINES
 pntarr SUMARRS
 : day1a 1 DO max LOOP ;

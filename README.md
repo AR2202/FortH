@@ -411,3 +411,15 @@ Strings representing numbers can be converted to an Int with the NUMBER keyword.
 `.s`
 
 output: 42
+
+## Loading a source code file 
+
+A Forth source code file can be loaded and the source code in it can be made available with :e <path to file>. Definitions in the file are added to the dictionary. Statements are executed immediately.
+
+
+### Example: Advent of Code 2022 day1 part 1
+
+The `test` folder contains a file called "AOC2022_day1.forth". This file contains Forth code for a (very hacky) solution to day 1 part 1 of advent of code 2022. When this file is loaded in to interpreter, it is run and prints the result of day1 part1, given the input in file "test/day1exampte.txt", which corresponds to the example input on the advent of code website. This can not be done repeatedly without restarting the interpreter, because repeated variable declarations cause undefined behaviour currently.
+`:l "test/AOC2022_day1.forth"`
+
+output: 24000
