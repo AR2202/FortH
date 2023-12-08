@@ -424,3 +424,10 @@ The `test` folder contains a file called "AOC2022_day1.forth". This file contain
 `:l "test/AOC2022_day1.forth"`
 
 output: 24000
+
+
+### Example: Advent of Code 2023 day1 part 1
+
+The `test` folder contains a file called "AOC2023_day1.forth". This file contains Forth code for a (very hacky and inefficient) solution to day 1 part 1 of advent of code 2023.
+
+`:l "test/AOC2023_day1.forth"`
